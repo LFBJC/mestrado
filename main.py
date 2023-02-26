@@ -6,6 +6,7 @@ from tensorflow.keras import models, layers, losses
 
 # Load the data from Yahoo Finance
 data = yf.download('AAPL')
+print(data)
 data.reset_index(inplace=True)
 
 
@@ -15,6 +16,12 @@ def normalization(x, batch_index):
     delta = (batch_data.max()-batch_data.min())
     x_minus_min = (x - batch_data.min())
     return x_minus_min/delta
+
+def inverse_normalization(x, batch_index):
+    global data
+    batch_data = data.iloc[batch_index*10:batch_index*10+9]
+    delta = (batch_data.max()-batch_data.min())
+    return x*delta + batch_data.min()
 
 
 images = []
