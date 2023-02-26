@@ -1,14 +1,31 @@
 import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import models, layers, losses
 
 # Load the data from Yahoo Finance
-data = yf.download('AAPL')
-data.drop("Volume", axis="columns", inplace=True)
-print(data)
-data.reset_index(inplace=True)
+original_data = yf.download('AAPL')
+print(original_data.columns)
+print(original_data.index.name)
+
+def calculate_stats(x):
+    stats = {}
+    for c in ["Open", "Close", "Adj Close"]:
+        stats[f"max_{c}"] = x[c].max()
+        stats[f"3rd_quartile_{c}"] = x[c].quantile(0.75)
+        stats[f"median_{c}"] = x[c].median()
+        stats[f"2nd_quartile_{c}"] = x[c].quantile(0.25)
+        stats[f"min_{c}"] = x[c].min()
+    return stats
+
+
+data = original_data.groupby(
+    by=[original_data.index.month, original_data.index.year]
+).apply(calculate_stats)
+data.index = pd.to_datetime(dict(year=data.index.get_level_values(1), month=data.index.get_level_values(0), day=1))
+data = pd.DataFrame.from_records(data)
 
 
 def normalization(x, batch_index):
