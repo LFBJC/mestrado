@@ -14,11 +14,11 @@ print(original_data.index.name)
 def calculate_stats(x):
     stats = {}
     for c in ["Open", "Close", "Adj Close"]:
-        stats[f"max_{c}"] = x[c].max()
-        stats[f"3rd_quartile_{c}"] = x[c].quantile(0.75)
-        stats[f"median_{c}"] = x[c].median()
-        stats[f"1st_quartile_{c}"] = x[c].quantile(0.25)
         stats[f"min_{c}"] = x[c].min()
+        stats[f"min_to_1st_quartile_{c}"] = x[c].quantile(0.25) - x[c].min()
+        stats[f"1st_quartile_to_median_{c}"] = x[c].median() - x[c].quantile(0.25)
+        stats[f"median_to_3rd_quartile_{c}"] = x[c].quantile(0.75) - x[c].median()
+        stats[f"3rd_quartile_to_max_{c}"] = x[c].max() - x[c].quantile(0.75)
     return stats
 
 
@@ -97,37 +97,57 @@ predicted_labels = [inverse_normalization(pred, batch_index) for batch_index, pr
 # predicted_labels = [batch_data.iloc[i] for batch_data in predicted_labels for i in range(batch_data.shape[0])]
 print(test_labels)
 print(predicted_labels)
+
+
+def replace_prefixes(string):
+    for pref in ["3rd_quartile_to_max_", "median_to_3rd_quartile_", "1st_quartile_to_median_", "min_to_1st_quartile_", "min_"]:
+        string = string.replace(pref, "")
+    return string
+
+
 plot_labels = []
 original_column_names = set([
-    col_name.replace("max_", "").replace("3rd_quartile_", "").replace("median_", "")\
-        .replace("1st_quartile_", "").replace("min_", "")
-    for col_name in data.columns
+    replace_prefixes(col_name) for col_name in data.columns
 ])
-stats_dict = {"Actual": {c: {} for c in original_column_names}, "Predicted": {c: {} for c in original_column_names}}
-for i, c in enumerate(data.columns):
-    if c.startswith("max_"):
-        original_column_name = c.replace("max_", "")
-        stats_dict["Actual"][original_column_name]["whishi"] = [e[c] for e in test_labels]
-        stats_dict["Predicted"][original_column_name]["whishi"] = [e[i] for e in predicted_labels]
-    elif c.startswith("3rd_quartile_"):
-        original_column_name = c.replace("3rd_quartile_", "")
-        stats_dict["Actual"][original_column_name]["q3"] = [e[c] for e in test_labels]
-        stats_dict["Predicted"][original_column_name]["q3"] = [e[i] for e in predicted_labels]
-    elif c.startswith("median_"):
-        original_column_name = c.replace("median_", "")
-        stats_dict["Actual"][original_column_name]["med"] = [e[c] for e in test_labels]
-        stats_dict["Predicted"][original_column_name]["med"] = [e[i] for e in predicted_labels]
-    elif c.startswith("1st_quartile_"):
-        original_column_name = c.replace("1st_quartile_", "")
-        stats_dict["Actual"][original_column_name]["q1"] = [e[c] for e in test_labels]
-        stats_dict["Predicted"][original_column_name]["q1"] = [e[i] for e in predicted_labels]
-    elif c.startswith("min_"):
-        original_column_name = c.replace("min_", "")
-        stats_dict["Actual"][original_column_name]["whislo"] = [e[c] for e in test_labels]
-        stats_dict["Predicted"][original_column_name]["whislo"] = [e[i] for e in predicted_labels]
-    else:
-        continue
-    plot_labels.extend([f"Actual {original_column_name}", f" Predicted {original_column_name}"])
+print(original_column_names)
+stats_dict = {"Actual": {}, "Predicted": {}}
+for original_column_name in original_column_names:
+    stats_dict["Actual"][original_column_name] = {
+        'whislo': [e["min_" + original_column_name] for e in test_labels],
+        'q1': [
+            e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
+        ],
+        'med': [
+            e["1st_quartile_to_median_" + original_column_name] + e["min_to_1st_quartile_" + original_column_name]
+            + e["min_" + original_column_name] for e in test_labels
+        ],
+        'q3': [
+            e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
+            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
+        ],
+        'whishi': [
+            e["3rd_quartile_to_max_" + original_column_name] + e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
+            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
+        ],
+    }
+    stats_dict["Predicted"][original_column_name] = {
+        'whislo': [e["min_" + original_column_name] for e in predicted_labels],
+        'q1': [
+            e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
+        ],
+        'med': [
+            e["1st_quartile_to_median_" + original_column_name] + e["min_to_1st_quartile_" + original_column_name]
+            + e["min_" + original_column_name] for e in predicted_labels
+        ],
+        'q3': [
+            e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
+            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
+        ],
+        'whishi': [
+            e["3rd_quartile_to_max_" + original_column_name] + e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
+            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
+        ],
+    }
 print(stats_dict)
 for original_column_name in stats_dict["Actual"].keys():
     stats = []
