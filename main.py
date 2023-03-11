@@ -10,13 +10,14 @@ original_data = yf.download('AAPL')
 print(original_data.columns)
 print(original_data.index.name)
 
+
 def calculate_stats(x):
     stats = {}
     for c in ["Open", "Close", "Adj Close"]:
         stats[f"max_{c}"] = x[c].max()
         stats[f"3rd_quartile_{c}"] = x[c].quantile(0.75)
         stats[f"median_{c}"] = x[c].median()
-        stats[f"2nd_quartile_{c}"] = x[c].quantile(0.25)
+        stats[f"1st_quartile_{c}"] = x[c].quantile(0.25)
         stats[f"min_{c}"] = x[c].min()
     return stats
 
@@ -91,12 +92,52 @@ plt.legend(['train', 'validation'], loc='upper left')
 plt.show()
 # Predicted vs actual
 test_labels = [inverse_normalization(x, batch_index) for batch_index, x in enumerate(test_labels)]
+# test_labels = [batch_data.iloc[i] for batch_data in test_labels for i in range(batch_data.shape[0])]
 predicted_labels = [inverse_normalization(pred, batch_index) for batch_index, pred in enumerate(model.predict(test_images))]
+# predicted_labels = [batch_data.iloc[i] for batch_data in predicted_labels for i in range(batch_data.shape[0])]
+print(test_labels)
+print(predicted_labels)
 plot_labels = []
+original_column_names = set([
+    col_name.replace("max_", "").replace("3rd_quartile_", "").replace("median_", "")\
+        .replace("1st_quartile_", "").replace("min_", "")
+    for col_name in data.columns
+])
+stats_dict = {"Actual": {c: {} for c in original_column_names}, "Predicted": {c: {} for c in original_column_names}}
 for i, c in enumerate(data.columns):
-    plt.plot([batch_data[c] for batch_data in test_labels])
-    plt.plot([pred_data[i] for pred_data in predicted_labels])
-    plot_labels.extend([f'actual {c}', f'predicted {c}'])
-plt.title('actual vs predicted')
-plt.legend(plot_labels, loc='upper left')
-plt.show()
+    if c.startswith("max_"):
+        original_column_name = c.replace("max_", "")
+        stats_dict["Actual"][original_column_name]["whishi"] = [e[c] for e in test_labels]
+        stats_dict["Predicted"][original_column_name]["whishi"] = [e[i] for e in predicted_labels]
+    elif c.startswith("3rd_quartile_"):
+        original_column_name = c.replace("3rd_quartile_", "")
+        stats_dict["Actual"][original_column_name]["q3"] = [e[c] for e in test_labels]
+        stats_dict["Predicted"][original_column_name]["q3"] = [e[i] for e in predicted_labels]
+    elif c.startswith("median_"):
+        original_column_name = c.replace("median_", "")
+        stats_dict["Actual"][original_column_name]["med"] = [e[c] for e in test_labels]
+        stats_dict["Predicted"][original_column_name]["med"] = [e[i] for e in predicted_labels]
+    elif c.startswith("1st_quartile_"):
+        original_column_name = c.replace("1st_quartile_", "")
+        stats_dict["Actual"][original_column_name]["q1"] = [e[c] for e in test_labels]
+        stats_dict["Predicted"][original_column_name]["q1"] = [e[i] for e in predicted_labels]
+    elif c.startswith("min_"):
+        original_column_name = c.replace("min_", "")
+        stats_dict["Actual"][original_column_name]["whislo"] = [e[c] for e in test_labels]
+        stats_dict["Predicted"][original_column_name]["whislo"] = [e[i] for e in predicted_labels]
+    else:
+        continue
+    plot_labels.extend([f"Actual {original_column_name}", f" Predicted {original_column_name}"])
+print(stats_dict)
+for original_column_name in stats_dict["Actual"].keys():
+    stats = []
+    for i in range(len(test_labels)):
+        stats.append({k: v[i] for k, v in stats_dict["Actual"][original_column_name].items()})
+        stats.append({k: v[i] for k, v in stats_dict["Predicted"][original_column_name].items()})
+    positions = []
+    for pos in range(len(stats)//2):
+        positions.extend([pos, pos])
+    fig, ax = plt.subplots()
+    ax.bxp(stats, positions=positions, showfliers=False)
+    plt.title(f'actual vs predicted {original_column_name}')
+    plt.show()
