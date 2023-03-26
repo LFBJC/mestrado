@@ -29,26 +29,24 @@ data.index = pd.to_datetime(dict(year=data.index.get_level_values(1), month=data
 data = pd.DataFrame.from_records(data)
 
 
-def normalization(x, batch_index):
-    global data
-    batch_data = data.iloc[batch_index*10:batch_index*10+9]
+def normalization(x, batch_index, data=data):
+    batch_data = data.iloc[batch_index:batch_index+9]
     delta = (batch_data.max()-batch_data.min())
     x_minus_min = (x - batch_data.min())
     return x_minus_min/delta
 
 
-def inverse_normalization(x, batch_index):
-    global data
-    batch_data = data.iloc[batch_index*10:batch_index*10+9]
+def inverse_normalization(x, batch_index, data=data):
+    batch_data = data.iloc[batch_index:batch_index+9]
     delta = (batch_data.max()-batch_data.min())
     return x*delta + batch_data.min()
 
 
 images = []
 labels = []
-for batch_index in range(data.shape[0]//10-1):
-    img_data = data.iloc[batch_index*10:batch_index*10+9]
-    label_data = data.iloc[(batch_index+1)*10]
+for batch_index in range(data.shape[0]-10):
+    img_data = data.iloc[batch_index:batch_index+9]
+    label_data = data.iloc[batch_index+10]
     images.append(
         img_data.apply(
             func=(lambda x: normalization(x, batch_index)),
@@ -61,7 +59,9 @@ for batch_index in range(data.shape[0]//10-1):
 
 images = np.array(images)
 labels = np.array(labels)
-train_images, val_images, test_images = images[:int(0.5*images.shape[0])], images[int(0.5*images.shape[0]):int(0.75*images.shape[0])], images[int(0.75*images.shape[0]):]
+train_images, val_images = images[:int(0.5*images.shape[0])], images[int(0.5*images.shape[0]):int(0.75*images.shape[0])]
+print('train imgs shape', train_images.shape)
+test_images = np.array([images[int(0.75*images.shape[0])]])
 train_labels, val_labels, test_labels = labels[:int(0.5*labels.shape[0])], labels[int(0.5*labels.shape[0]):int(0.75*images.shape[0])], labels[int(0.75*images.shape[0]):]
 train_images = tf.convert_to_tensor(train_images[:, :, :, np.newaxis], dtype=tf.float32)
 train_labels = tf.convert_to_tensor(train_labels, dtype=tf.float32)
@@ -74,7 +74,7 @@ model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Conv2D(64, (3, 2), activation='relu'))
 model.add(layers.Flatten())
 model.add(layers.Dense(64, activation='relu'))
-model.add(layers.Dense(len(data.columns)))
+model.add(layers.Dense(len(data.columns), activation='relu'))
 model.summary()
 model.compile(optimizer='adam',
               loss=losses.MeanSquaredError(),
@@ -91,9 +91,27 @@ plt.xlabel('epoch')
 plt.legend(['train', 'validation'], loc='upper left')
 plt.show()
 # Predicted vs actual
-test_labels = [inverse_normalization(x, batch_index) for batch_index, x in enumerate(test_labels)]
+test_labels = [inverse_normalization(x, batch_index + len(train_labels) + len(val_labels)) for batch_index, x in enumerate(test_labels)]
 # test_labels = [batch_data.iloc[i] for batch_data in test_labels for i in range(batch_data.shape[0])]
-predicted_labels = [inverse_normalization(pred, batch_index) for batch_index, pred in enumerate(model.predict(test_images))]
+first_test_prediction = model.predict(test_images)[0]
+test_data = data[:int(0.75*images.shape[0])].copy()
+batch_index = test_data.shape[0]-9
+predicted_labels = [inverse_normalization(first_test_prediction, batch_index, test_data)]
+test_data = test_data.append(predicted_labels[-1], ignore_index=True)
+for _ in range(1, len(test_labels)):
+    test_img_data = test_data.iloc[batch_index:batch_index + 9]
+    current_test_image = np.array([
+        test_img_data.apply(
+            func=(lambda x: normalization(x, batch_index)),
+            axis=1
+        )
+    ])
+    current_test_image = tf.convert_to_tensor(current_test_image[:, :, :, np.newaxis], dtype=tf.float32)
+    print('test img shape', current_test_image.shape)
+    print('test out shape', model.predict(current_test_image)[0].shape)
+    predicted_labels.append(inverse_normalization(model.predict(current_test_image)[0], batch_index))
+    test_data = test_data.append(predicted_labels[-1], ignore_index=True)
+    batch_index += 1
 # predicted_labels = [batch_data.iloc[i] for batch_data in predicted_labels for i in range(batch_data.shape[0])]
 print(test_labels)
 print(predicted_labels)
