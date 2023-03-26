@@ -7,8 +7,8 @@ from tensorflow.keras import models, layers, losses
 
 # Load the data from Yahoo Finance
 original_data = yf.download('AAPL')
-print(original_data.columns)
-print(original_data.index.name)
+# print(original_data.columns)
+# print(original_data.index.name)
 
 
 def calculate_stats(x):
@@ -60,7 +60,7 @@ for batch_index in range(data.shape[0]-10):
 images = np.array(images)
 labels = np.array(labels)
 train_images, val_images = images[:int(0.5*images.shape[0])], images[int(0.5*images.shape[0]):int(0.75*images.shape[0])]
-print('train imgs shape', train_images.shape)
+# print('train imgs shape', train_images.shape)
 test_images = np.array([images[int(0.75*images.shape[0])]])
 train_labels, val_labels, test_labels = labels[:int(0.5*labels.shape[0])], labels[int(0.5*labels.shape[0]):int(0.75*images.shape[0])], labels[int(0.75*images.shape[0]):]
 train_images = tf.convert_to_tensor(train_images[:, :, :, np.newaxis], dtype=tf.float32)
@@ -107,14 +107,14 @@ for _ in range(1, len(test_labels)):
         )
     ])
     current_test_image = tf.convert_to_tensor(current_test_image[:, :, :, np.newaxis], dtype=tf.float32)
-    print('test img shape', current_test_image.shape)
-    print('test out shape', model.predict(current_test_image)[0].shape)
+    # print('test img shape', current_test_image.shape)
+    # print('test out shape', model.predict(current_test_image)[0].shape)
     predicted_labels.append(inverse_normalization(model.predict(current_test_image)[0], batch_index))
     test_data = test_data.append(predicted_labels[-1], ignore_index=True)
     batch_index += 1
 # predicted_labels = [batch_data.iloc[i] for batch_data in predicted_labels for i in range(batch_data.shape[0])]
-print(test_labels)
-print(predicted_labels)
+# print(test_labels)
+# print(predicted_labels)
 
 
 def replace_prefixes(string):
@@ -127,7 +127,7 @@ plot_labels = []
 original_column_names = set([
     replace_prefixes(col_name) for col_name in data.columns
 ])
-print(original_column_names)
+# print(original_column_names)
 stats_dict = {"Actual": {}, "Predicted": {}}
 for original_column_name in original_column_names:
     stats_dict["Actual"][original_column_name] = {
@@ -166,7 +166,7 @@ for original_column_name in original_column_names:
             + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
         ],
     }
-print(stats_dict)
+# print(stats_dict)
 for original_column_name in stats_dict["Actual"].keys():
     stats = []
     for i in range(len(test_labels)):
