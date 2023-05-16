@@ -1,181 +1,86 @@
-import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras import models, layers, losses
+from tensorflow.keras import losses
+from utils import aggregate_data_by_chunks, random_walk, plot_multiple_box_plot_series, \
+    images_and_targets_from_data_series, create_model
 
-# Load the data from Yahoo Finance
-original_data = yf.download('AAPL')
-# print(original_data.columns)
-# print(original_data.index.name)
+data = aggregate_data_by_chunks(random_walk(n_samples=1000), chunk_size=10)
+input_win_size = 20
+targets_size=5
+model = create_model()
+model.compile(optimizer='adam', loss=losses.MeanSquaredError(), metrics=['mean_squared_error'])
+for epoch in range(2):
+    predictions = []
+    for image, target_bboxes, inverse_normalization in images_and_targets_from_data_series(
+            data, input_win_size=input_win_size, targets_size=targets_size
+    ):
+        # create a 3D input tensor with shape (batch_size, time_steps, input_dim)
+        X = np.zeros((1, image.shape[0], image.shape[1], 1))
+        X[0, :, :, :] = image
 
+        # create a 2D target tensor with shape (batch_size, output_dim)
+        y = np.array(list(target_bboxes[0])).reshape((1, -1))
+        # predict ranges instead of bbox values
+        y[:, 1:] -= y[:, :-1]
 
-def calculate_stats(x):
-    stats = {}
-    for c in ["Open", "Close", "Adj Close"]:
-        stats[f"min_{c}"] = x[c].min()
-        stats[f"min_to_1st_quartile_{c}"] = x[c].quantile(0.25) - x[c].min()
-        stats[f"1st_quartile_to_median_{c}"] = x[c].median() - x[c].quantile(0.25)
-        stats[f"median_to_3rd_quartile_{c}"] = x[c].quantile(0.75) - x[c].median()
-        stats[f"3rd_quartile_to_max_{c}"] = x[c].max() - x[c].quantile(0.75)
-    return stats
+        # train the model on the input-output pair for one epoch
+        print(X.shape, y.shape)
+        model.fit(X, y, batch_size=1, epochs=1, verbose=0)
 
+        pred = model.predict(X)
+        # convert range to actual bounding box
+        pred[:, 1] += pred[:, 0]
+        pred[:, 2] += pred[:, 1]
+        pred[:, 3] += pred[:, 2]
+        pred[:, 4] += pred[:, 3]
+        pred = inverse_normalization(pred)
+        predictions.append(pred)
 
-data = original_data.groupby(
-    by=[original_data.index.month, original_data.index.year]
-).apply(calculate_stats)
-data.index = pd.to_datetime(dict(year=data.index.get_level_values(1), month=data.index.get_level_values(0), day=1))
-data = pd.DataFrame.from_records(data)
+        # generate predictions for the remaining bounding boxes
+        for bbox in target_bboxes[1:]:
+            # create a new input tensor with shape (1, time_steps, input_dim)
+            X = np.zeros((1, image.shape[0], image.shape[1], 1))
+            pred = model.predict(X)
+            # convert range to actual bounding box
+            pred[:, 1] += pred[:, 0]
+            pred[:, 2] += pred[:, 1]
+            pred[:, 3] += pred[:, 2]
+            pred[:, 4] += pred[:, 3]
+            X[0, :-1, :, :] = X[0, 1:, :, :]
+            X[0, -1, :, :] = tf.transpose(pred)
 
+            # create a new target tensor with shape (1, output_dim)
+            y = np.array(list(bbox)).reshape((1, -1))
+            # predict ranges instead of bbox values
+            y[:, 1:] -= y[:, :-1]
 
-def normalization(x, batch_index, data=data):
-    batch_data = data.iloc[batch_index:batch_index+9]
-    delta = (batch_data.max()-batch_data.min())
-    x_minus_min = (x - batch_data.min())
-    return x_minus_min/delta
+            # train the model on the new input-output pair for one epoch
+            model.fit(X, y, batch_size=1, epochs=1, verbose=0)
 
-
-def inverse_normalization(x, batch_index, data=data):
-    batch_data = data.iloc[batch_index:batch_index+9]
-    delta = (batch_data.max()-batch_data.min())
-    return x*delta + batch_data.min()
-
-
-images = []
-labels = []
-for batch_index in range(data.shape[0]-10):
-    img_data = data.iloc[batch_index:batch_index+9]
-    label_data = data.iloc[batch_index+10]
-    images.append(
-        img_data.apply(
-            func=(lambda x: normalization(x, batch_index)),
-            axis=1
-        )
-    )
-    labels.append(
-        normalization(label_data, batch_index)
-    )
-
-images = np.array(images)
-labels = np.array(labels)
-train_images, val_images = images[:int(0.5*images.shape[0])], images[int(0.5*images.shape[0]):int(0.75*images.shape[0])]
-# print('train imgs shape', train_images.shape)
-test_images = np.array([images[int(0.75*images.shape[0])]])
-train_labels, val_labels, test_labels = labels[:int(0.5*labels.shape[0])], labels[int(0.5*labels.shape[0]):int(0.75*images.shape[0])], labels[int(0.75*images.shape[0]):]
-train_images = tf.convert_to_tensor(train_images[:, :, :, np.newaxis], dtype=tf.float32)
-train_labels = tf.convert_to_tensor(train_labels, dtype=tf.float32)
-val_images = tf.convert_to_tensor(val_images[:, :, :, np.newaxis], dtype=tf.float32)
-val_labels = tf.convert_to_tensor(val_labels, dtype=tf.float32)
-test_images = tf.convert_to_tensor(test_images[:, :, :, np.newaxis], dtype=tf.float32)
-model = models.Sequential()
-model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(9, len(data.columns), 1)))
-model.add(layers.MaxPooling2D((2, 2)))
-model.add(layers.Conv2D(64, (3, 2), activation='relu'))
-model.add(layers.Flatten())
-model.add(layers.Dense(64, activation='relu'))
-model.add(layers.Dense(len(data.columns), activation='relu'))
-model.summary()
-model.compile(optimizer='adam',
-              loss=losses.MeanSquaredError(),
-              metrics=['mean_squared_error'])
-
-history = model.fit(train_images, train_labels, epochs=10,
-                    validation_data=(val_images, val_labels))
-# "Loss"
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
-plt.show()
-# Predicted vs actual
-test_labels = [inverse_normalization(x, batch_index + len(train_labels) + len(val_labels)) for batch_index, x in enumerate(test_labels)]
-# test_labels = [batch_data.iloc[i] for batch_data in test_labels for i in range(batch_data.shape[0])]
-first_test_prediction = model.predict(test_images)[0]
-test_data = data[:int(0.75*images.shape[0])].copy()
-batch_index = test_data.shape[0]-9
-predicted_labels = [inverse_normalization(first_test_prediction, batch_index, test_data)]
-test_data = test_data.append(predicted_labels[-1], ignore_index=True)
-for _ in range(1, len(test_labels)):
-    test_img_data = test_data.iloc[batch_index:batch_index + 9]
-    current_test_image = np.array([
-        test_img_data.apply(
-            func=(lambda x: normalization(x, batch_index)),
-            axis=1
-        )
-    ])
-    current_test_image = tf.convert_to_tensor(current_test_image[:, :, :, np.newaxis], dtype=tf.float32)
-    # print('test img shape', current_test_image.shape)
-    # print('test out shape', model.predict(current_test_image)[0].shape)
-    predicted_labels.append(inverse_normalization(model.predict(current_test_image)[0], batch_index))
-    test_data = test_data.append(predicted_labels[-1], ignore_index=True)
-    batch_index += 1
-# predicted_labels = [batch_data.iloc[i] for batch_data in predicted_labels for i in range(batch_data.shape[0])]
-# print(test_labels)
-# print(predicted_labels)
-
-
-def replace_prefixes(string):
-    for pref in ["3rd_quartile_to_max_", "median_to_3rd_quartile_", "1st_quartile_to_median_", "min_to_1st_quartile_", "min_"]:
-        string = string.replace(pref, "")
-    return string
-
-
-plot_labels = []
-original_column_names = set([
-    replace_prefixes(col_name) for col_name in data.columns
-])
-# print(original_column_names)
-stats_dict = {"Actual": {}, "Predicted": {}}
-for original_column_name in original_column_names:
-    stats_dict["Actual"][original_column_name] = {
-        'whislo': [e["min_" + original_column_name] for e in test_labels],
-        'q1': [
-            e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
-        ],
-        'med': [
-            e["1st_quartile_to_median_" + original_column_name] + e["min_to_1st_quartile_" + original_column_name]
-            + e["min_" + original_column_name] for e in test_labels
-        ],
-        'q3': [
-            e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
-            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
-        ],
-        'whishi': [
-            e["3rd_quartile_to_max_" + original_column_name] + e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
-            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in test_labels
-        ],
-    }
-    stats_dict["Predicted"][original_column_name] = {
-        'whislo': [e["min_" + original_column_name] for e in predicted_labels],
-        'q1': [
-            e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
-        ],
-        'med': [
-            e["1st_quartile_to_median_" + original_column_name] + e["min_to_1st_quartile_" + original_column_name]
-            + e["min_" + original_column_name] for e in predicted_labels
-        ],
-        'q3': [
-            e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
-            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
-        ],
-        'whishi': [
-            e["3rd_quartile_to_max_" + original_column_name] + e["median_to_3rd_quartile_" + original_column_name] + e["1st_quartile_to_median_" + original_column_name]
-            + e["min_to_1st_quartile_" + original_column_name] + e["min_" + original_column_name] for e in predicted_labels
-        ],
-    }
-# print(stats_dict)
-for original_column_name in stats_dict["Actual"].keys():
-    stats = []
-    for i in range(len(test_labels)):
-        stats.append({k: v[i] for k, v in stats_dict["Actual"][original_column_name].items()})
-        stats.append({k: v[i] for k, v in stats_dict["Predicted"][original_column_name].items()})
-    positions = []
-    for pos in range(len(stats)//2):
-        positions.extend([pos, pos])
-    fig, ax = plt.subplots()
-    ax.bxp(stats, positions=positions, showfliers=False)
-    plt.title(f'actual vs predicted {original_column_name}')
-    plt.show()
+            # update the input image with the predicted bounding box
+            print(image.shape)
+            print(X.shape)
+            image = np.concatenate((image[1:, :], X[0, -1:, :, :]), axis=0)
+            pred = model.predict(X)
+            # convert range to actual bounding box
+            pred[:, 1] += pred[:, 0]
+            pred[:, 2] += pred[:, 1]
+            pred[:, 3] += pred[:, 2]
+            pred[:, 4] += pred[:, 3]
+            pred = inverse_normalization(pred)
+            predictions.append(pred)
+predictions = [
+    {
+        'whislo': pred[0, 0],
+        'q1': pred[0, 1],
+        'med': pred[0, 2],
+        'q3': pred[0, 3],
+        'whishi': pred[0, 4]
+    } for pred in predictions
+]
+ground_truth = [bbox for i in range(len(data)-targets_size-input_win_size) for bbox in data[input_win_size+i:input_win_size+i+targets_size]]
+print(predictions, len(predictions))
+print(ground_truth, len(ground_truth))
+plot_multiple_box_plot_series([ground_truth, predictions])
