@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras import models, layers, Input, Model
+from keras import backend as K
 
 
 def random_walk(n_samples: int = 10000, begin_value: float=None):
@@ -73,6 +74,10 @@ def create_model(input_shape=(20, 5, 1)):
     out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
     out = layers.concatenate([out_min, out_ranges])
     return Model(inputs=[input], outputs=[out])
+
+
+def MMRE(y_true, y_pred):
+    return K.mean(K.abs(y_true-y_pred)/y_true)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow.keras import losses
 from tensorflow.keras import metrics
 from utils import aggregate_data_by_chunks, random_walk, plot_multiple_box_plot_series, \
-    plot_single_box_plot_series, images_and_targets_from_data_series, create_model
+    plot_single_box_plot_series, images_and_targets_from_data_series, create_model, MMRE
 
 np.seterr(all='raise')
 np.random.seed(19091996)
@@ -17,7 +17,7 @@ train_data, val_data, test_data = data[:len(data)//2], data[len(data)//2:3*len(d
 input_win_size = 20
 N_EPOCHS = 50
 model = create_model()
-model.compile(optimizer='adam', loss=losses.MeanSquaredError(), metrics=['mean_squared_error'])
+model.compile(optimizer='adam', loss=losses.MeanSquaredError(), metrics=[MMRE])
 X = np.zeros((1, input_win_size, 5, 1))
 train_losses = []
 val_losses = []
