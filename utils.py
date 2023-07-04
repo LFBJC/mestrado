@@ -26,9 +26,12 @@ def aggregate_data_by_chunks(data, chunk_size: int = 10):
     return box_plots
 
 
-def plot_single_box_plot_series(box_plot_series):
+def plot_single_box_plot_series(box_plot_series, splitters=[]):
     fig, ax = plt.subplots()
     ax.bxp(box_plot_series, showfliers=False)
+    if splitters:
+        for splitter in splitters:
+            ax.axvline(splitter)
     plt.show()
 
 
@@ -48,18 +51,18 @@ def plot_multiple_box_plot_series(box_plot_series):
         plt.show()
 
 
-def images_and_targets_from_data_series(data, input_win_size=20, targets_size=5):
-    for i in range(len(data)-targets_size-input_win_size):
+def images_and_targets_from_data_series(data, input_win_size=20):
+    for i in range(len(data)-1-input_win_size):
         image_data = data[i:input_win_size+i]
         image = np.array([[[v] for v in list(bbox.values())] for bbox in image_data])
         inverse_normalization = lambda x: (np.max(image) - np.min(image))*x + np.min(image)
         image = (image - np.min(image))/(np.max(image) - np.min(image))
-        targets = [list(bbox.values()) for bbox in data[input_win_size+i:input_win_size+i+targets_size]]
+        targets = np.array(list(data[input_win_size+i].values()))
         targets = (targets - np.min(image))/(np.max(image) - np.min(image))
         yield image, targets, inverse_normalization
 
 
-def create_model(input_shape=(20, 5, 1), print_summary=True):
+def create_model(input_shape=(20, 5, 1)):
     input = Input(shape=input_shape)
     conv_1 = layers.Conv2D(32, (input_shape[0]//5, 1), activation='relu', input_shape=input_shape)(input)
     max_pooling_1 = layers.MaxPooling2D((2, 2))(conv_1)
