@@ -11,7 +11,7 @@ def objective(trial, study, data_set_index):
     val_data = pd.read_csv(f'data/{data_set_index}/val.csv').to_dict('records')
     os.makedirs(f'best_models/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 10, 70)
-    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 70)
+    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 50)
     kernel_size_conv_1 = (
         trial.suggest_int('kernel_size_conv_1[0]', 2, win_size//3),
         trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
@@ -22,7 +22,7 @@ def objective(trial, study, data_set_index):
         1
     )
     pool_type_1 = trial.suggest_categorical('pool_type_1', ['max', 'average'])
-    filters_conv_2 = trial.suggest_int('filters_conv_2', 10, filters_conv_1)
+    filters_conv_2 = trial.suggest_int('filters_conv_2', 10, filters_conv_1 // 2)
     w2 = (win_size - kernel_size_conv_1[0]) + 1
     w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
     del w2
