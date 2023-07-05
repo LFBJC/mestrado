@@ -88,7 +88,7 @@ def create_model(
 
 
 def MMRE(y_true, y_pred):
-    return K.mean(K.abs((y_true-y_pred)/y_true))
+    return K.mean(K.abs((y_true-y_pred)/(y_true + K.epsilon)))
 
 
 if __name__ == "__main__":
