@@ -22,7 +22,7 @@ def objective(trial, study, data_set_index):
         1
     )
     pool_type_1 = trial.suggest_categorical('pool_type_1', ['max', 'average'])
-    filters_conv_2 = trial.suggest_int('filters_conv_2', 10, filters_conv_1 // 2)
+    filters_conv_2 = trial.suggest_int('filters_conv_2', 5, filters_conv_1 // 2)
     w2 = (win_size - kernel_size_conv_1[0]) + 1
     w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
     del w2
