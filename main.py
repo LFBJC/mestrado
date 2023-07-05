@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import losses
-from tensorflow.keras import metrics
 from utils import aggregate_data_by_chunks, random_walk, plot_multiple_box_plot_series, \
     plot_single_box_plot_series, images_and_targets_from_data_series, create_model, MMRE
 
@@ -61,7 +60,7 @@ for epoch in tqdm(range(N_EPOCHS)):
             y = np.array(list(target_bbox)).reshape((1, -1))
             # predict ranges instead of bbox values
             y[:, 1:] -= y[:, :-1]
-            val_losses_for_this_epoch.append(metrics.mean_squared_error(y, pred))
+            val_losses_for_this_epoch.append(MMRE(y, pred))
         val_losses.append(np.mean(val_losses_for_this_epoch))
         del val_losses_for_this_epoch
         if len(val_losses) > 2 and val_losses[-1] >= val_losses[-2]:
@@ -90,7 +89,7 @@ for image, target_bbox, inverse_normalization in images_and_targets_from_data_se
     y = np.array(list(target_bbox)).reshape((1, -1))
     # predict ranges instead of bbox values
     y[:, 1:] -= y[:, :-1]
-    test_losses.append(metrics.mean_squared_error(y, pred))
+    test_losses.append(MMRE(y, pred))
     # convert range to actual bounding box
     pred[:, 1] += pred[:, 0]
     pred[:, 2] += pred[:, 1]

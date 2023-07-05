@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras import models, layers, Input, Model
 from keras import backend as K
+from typing import Literal
 
 
 def random_walk(n_samples: int = 10000, begin_value: float=None):
@@ -63,13 +64,23 @@ def images_and_targets_from_data_series(data, input_win_size=20):
         yield image, targets, inverse_normalization
 
 
-def create_model(input_shape=(20, 5, 1)):
+def create_model(
+    input_shape=(20, 5, 1), filters_conv_1=32, kernel_size_conv_1=(4, 1), activation_conv_1='relu',
+    pool_size_1=(2, 2), pool_type_1: Literal["max", "average"] = "max",
+    filters_conv_2=16, kernel_size_conv_2=(1, 2), activation_conv_2='relu',
+    dense_neurons=16, dense_activation='relu'
+):
     input = Input(shape=input_shape)
-    conv_1 = layers.Conv2D(32, (input_shape[0]//5, 1), activation='relu', input_shape=input_shape)(input)
-    max_pooling_1 = layers.MaxPooling2D((2, 2))(conv_1)
-    conv_2 = layers.Conv2D(16, (1, 2), activation='relu')(max_pooling_1)
+    conv_1 = layers.Conv2D(
+        filters_conv_1, kernel_size_conv_1, activation=activation_conv_1, input_shape=input_shape
+    )(input)
+    if pool_type_1 == 'max':
+        pooling_1 = layers.MaxPooling2D(pool_size_1)(conv_1)
+    else:
+        pooling_1 = layers.AveragePooling2D(pool_size_1)(conv_1)
+    conv_2 = layers.Conv2D(filters_conv_2, kernel_size_conv_2, activation=activation_conv_2)(pooling_1)
     flatten = layers.Flatten()(conv_2)
-    hidden_dense = layers.Dense(16, activation='relu')(flatten)
+    hidden_dense = layers.Dense(dense_neurons, activation=dense_activation)(flatten)
     out_min = layers.Dense(1)(hidden_dense)
     out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
     out = layers.concatenate([out_min, out_ranges])
