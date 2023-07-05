@@ -10,8 +10,8 @@ def objective(trial, study, data_set_index):
     train_data = pd.read_csv(f'data/{data_set_index}/train.csv').to_dict('records')
     val_data = pd.read_csv(f'data/{data_set_index}/val.csv').to_dict('records')
     os.makedirs(f'best_models/{data_set_index}', exist_ok=True)
-    win_size = trial.suggest_int('win_size', 10, 70)
-    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 50)
+    win_size = trial.suggest_int('win_size', 10, 40)
+    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 40)
     kernel_size_conv_1 = (
         trial.suggest_int('kernel_size_conv_1[0]', 2, win_size//3),
         trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
@@ -90,7 +90,7 @@ def objective(trial, study, data_set_index):
             del val_losses_for_this_epoch
             if len(val_losses) > 2 and val_losses[-1] >= val_losses[-2]:
                 epochs_no_improve += 1
-    error = min(val_losses)
+    error = val_losses[-1]
     try:
         if error < study.best_value:
             model.save(f'best_models/{data_set_index}/best_model.h5')
