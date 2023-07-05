@@ -55,7 +55,7 @@ def objective(trial, study, data_set_index):
         ]),
         metrics=[MMRE]
     )
-    N_EPOCHS = 2
+    N_EPOCHS = 50
     epochs_no_improve = 0
     val_losses = []
     X = np.zeros((1, win_size, 5, 1))
