@@ -3,7 +3,7 @@ import optuna
 import numpy as np
 import pandas as pd
 from utils import create_model, MMRE, images_and_targets_from_data_series
-from tqdm import tqdm
+# from tqdm import tqdm
 
 
 def objective(trial, study, data_set_index):
@@ -11,7 +11,7 @@ def objective(trial, study, data_set_index):
     val_data = pd.read_csv(f'data/{data_set_index}/val.csv').to_dict('records')
     os.makedirs(f'best_models/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 10, 40)
-    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 40)
+    filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 30)
     kernel_size_conv_1 = (
         trial.suggest_int('kernel_size_conv_1[0]', 2, win_size//3),
         trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
@@ -59,7 +59,7 @@ def objective(trial, study, data_set_index):
     epochs_no_improve = 0
     val_losses = []
     X = np.zeros((1, win_size, 5, 1))
-    for epoch in tqdm(range(N_EPOCHS)):
+    for epoch in range(N_EPOCHS):
         if epochs_no_improve < 10:
             for image, target_bbox, inverse_normalization in images_and_targets_from_data_series(
                     train_data, input_win_size=win_size
@@ -106,4 +106,4 @@ study = optuna.create_study(
     pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
     study_name='hyperparameter_opt'
 )
-study.optimize(lambda trial: objective(trial, study, data_set_index), n_trials=300)
+study.optimize(lambda trial: objective(trial, study, data_set_index), n_trials=100, n_jobs=2)
