@@ -37,7 +37,7 @@ def plot_single_box_plot_series(box_plot_series, splitters=[]):
     plt.show()
 
 
-def plot_multiple_box_plot_series(box_plot_series):
+def plot_multiple_box_plot_series(box_plot_series, save_path='', show=True):
     if len(box_plot_series) > 1:
         assert all([len(x) == len(box_plot_series[0]) for x in box_plot_series[1:]])
         # positions = list(range(len(box_plot_series[0])))*len(box_plot_series)
@@ -50,7 +50,10 @@ def plot_multiple_box_plot_series(box_plot_series):
         fig, ax = plt.subplots()
         for i, b_series in enumerate(box_plot_series):
             ax.bxp(b_series, boxprops={'color': colors[i]}, showfliers=False)
-        plt.show()
+        if save_path != '':
+            plt.savefig(fname=save_path)
+        if show:
+            plt.show()
 
 
 def images_and_targets_from_data_series(data, input_win_size=20):

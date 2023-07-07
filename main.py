@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
@@ -7,69 +8,14 @@ from tensorflow.keras import losses
 from utils import aggregate_data_by_chunks, random_walk, plot_multiple_box_plot_series, \
     plot_single_box_plot_series, images_and_targets_from_data_series, create_model, MMRE
 
-np.seterr(all='raise')
-np.random.seed(19091996)
-# TODO split into training and test
-data = aggregate_data_by_chunks(random_walk(n_samples=2000), chunk_size=10)
-plot_single_box_plot_series(data, splitters=[len(data)//2, 3*len(data)//4])
-train_data, val_data, test_data = data[:len(data)//2], data[len(data)//2:3*len(data)//4], data[3*len(data)//4:]
-input_win_size = 20
-N_EPOCHS = 50
-model = create_model()
-model.compile(optimizer='adam', loss=losses.MeanSquaredError(), metrics=[MMRE])
+data_set_index = 0
+test_data = pd.read_csv(f'data/{data_set_index}/test.csv').to_dict('records')
+model = tf.keras.models.load_model(
+    f'best_models/{data_set_index}/best_model.h5',
+    custom_objects={"MMRE": MMRE}
+)
+input_win_size = model.input_shape[1]
 X = np.zeros((1, input_win_size, 5, 1))
-train_losses = []
-val_losses = []
-epochs_no_improve = 0
-for epoch in tqdm(range(N_EPOCHS)):
-    if epochs_no_improve < 10:
-        train_losses_for_this_epoch = []
-        for image, target_bbox, inverse_normalization in images_and_targets_from_data_series(
-                train_data, input_win_size=input_win_size
-        ):
-            # plt.imshow(image)
-            X[0, :, :, :] = image
-
-            # create a 2D target tensor with shape (batch_size, output_dim)
-            y = np.array(list(target_bbox)).reshape((1, -1))
-            # predict ranges instead of bbox values
-            y[:, 1:] -= y[:, :-1]
-
-            # train the model on the input-output pair for one epoch
-            model.fit(X, y, batch_size=1, epochs=1, verbose=0)
-            train_losses_for_this_epoch.append(model.evaluate(x=X, y=y, verbose=0))
-
-            pred = model.predict(X, verbose=0)
-            # convert range to actual bounding box
-            pred[:, 1] += pred[:, 0]
-            pred[:, 2] += pred[:, 1]
-            pred[:, 3] += pred[:, 2]
-            pred[:, 4] += pred[:, 3]
-            pred = inverse_normalization(pred)
-
-        train_losses.append(np.mean(train_losses_for_this_epoch))
-        del train_losses_for_this_epoch
-
-        val_losses_for_this_epoch = []
-        for image, target_bbox, inverse_normalization in images_and_targets_from_data_series(
-                train_data, input_win_size=input_win_size
-        ):
-            X[0, :, :, :] = image
-            pred = model.predict(X, verbose=0)
-            # create a 2D target tensor with shape (batch_size, output_dim)
-            y = np.array(list(target_bbox)).reshape((1, -1))
-            # predict ranges instead of bbox values
-            y[:, 1:] -= y[:, :-1]
-            val_losses_for_this_epoch.append(MMRE(y, pred))
-        val_losses.append(np.mean(val_losses_for_this_epoch))
-        del val_losses_for_this_epoch
-        if len(val_losses) > 2 and val_losses[-1] >= val_losses[-2]:
-            epochs_no_improve += 1
-plt.figure()
-plt.plot(train_losses, label='train')
-plt.plot(val_losses, label='val')
-plt.legend()
-plt.show()
 predictions = []
 test_losses = []
 ground_truth = []
@@ -106,5 +52,8 @@ predictions = [
         'whishi': pred[0, 4]
     } for pred in predictions
 ]
-print(np.mean(test_losses))
-plot_multiple_box_plot_series([ground_truth, predictions])
+result = np.mean(test_losses)
+with open('results_log.txt', 'a+') as results_log:
+    results_log.write(f'{data_set_index}: {result}\n')
+os.makedirs('test_result_plots', exist_ok=True)
+plot_multiple_box_plot_series([ground_truth, predictions], save_path=f'test_result_plots/{data_set_index}.png', show=False)
