@@ -96,7 +96,7 @@ def MMRE(y_true, y_pred):
     return K.mean(K.abs((y_true-y_pred)/(y_true + K.epsilon())))
 
 
-def partitioning_and_prototype_selection(series):
+def partitioning_and_prototype_selection(series, k_janelas=30):
     # this R code is a copy of the code from Dailys
     importacoes_de_bibliotecas_e_def_de_funcoes = '''
         library(tseries)
@@ -253,7 +253,7 @@ prototipos <- function(serie, vizinhos, mutua, a, qj){
     def_series_no_r = f'' \
                       f'y <- c{tuple(series)}\n' \
                       f'x <- lag(y)\n' \
-                      f'qj <- kJanelas(y, 30, 0.4)\n' \
+                      f'qj <- kJanelas(y, {k_janelas}, 0.4)\n' \
                       f'amostras_y <- particionar (y)\n' \
                       f'amostras_x <- particionar(x)'
     execucao_do_codigo_em_si = '''
@@ -267,6 +267,19 @@ prototipos <- function(serie, vizinhos, mutua, a, qj){
     result = robjects.r(importacoes_de_bibliotecas_e_def_de_funcoes + def_series_no_r + execucao_do_codigo_em_si)
     result_py = [list(x) for x in result]
     return result_py
+
+
+def list_of_lists_to_list_of_boxplots(data):
+    box_plots = []
+    for chunk_data in data:
+        box_plots.append({
+            'whislo': min(chunk_data),
+            'q1': np.quantile(chunk_data, 0.25),
+            'med': np.quantile(chunk_data, 0.5),
+            'q3': np.quantile(chunk_data, 0.75),
+            'whishi': max(chunk_data)
+        })
+    return box_plots
 
 if __name__ == "__main__":
     # plot_single_box_plot_series(aggregate_data_by_chunks(random_walk(), 100))
