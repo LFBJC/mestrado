@@ -9,8 +9,7 @@ from utils import create_model, MMRE, images_and_targets_from_data_series
 
 
 def objective(trial, study, data_set_index):
-    train_data = pd.read_csv(f'data/{data_set_index}/train.csv').to_dict('records')
-    val_data = pd.read_csv(f'data/{data_set_index}/val.csv').to_dict('records')
+    train_data = pd.read_csv(f'data/{data_set_index}.csv').to_dict('records')
     os.makedirs(f'hyperparameter_optimization_output/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 10, 40)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 10, 30)
@@ -60,7 +59,6 @@ def objective(trial, study, data_set_index):
     N_EPOCHS = 50
     epochs_no_improve = 0
     train_losses = []
-    val_losses = []
     X = np.zeros((1, win_size, 5, 1))
     for epoch in range(N_EPOCHS):
         if epochs_no_improve < 10:
@@ -80,23 +78,7 @@ def objective(trial, study, data_set_index):
                 model.fit(X, y, batch_size=1, epochs=1, verbose=0)
                 train_losses_for_this_epoch.append(MMRE(y, model.predict(X, verbose=0)))
             train_losses.append(np.mean(train_losses_for_this_epoch))
-
-            val_losses_for_this_epoch = []
-            for image, target_bbox, inverse_normalization in images_and_targets_from_data_series(
-                    val_data, input_win_size=win_size
-            ):
-                X[0, :, :, :] = image
-                pred = model.predict(X, verbose=0)
-                # create a 2D target tensor with shape (batch_size, output_dim)
-                y = np.array(list(target_bbox)).reshape((1, -1))
-                # predict ranges instead of bbox values
-                y[:, 1:] -= y[:, :-1]
-                val_losses_for_this_epoch.append(MMRE(y, pred))
-            val_losses.append(np.mean(val_losses_for_this_epoch))
-            del val_losses_for_this_epoch
-            if len(val_losses) > 2 and val_losses[-1] >= val_losses[-2]:
-                epochs_no_improve += 1
-    error = val_losses[-1]
+    error = train_losses[-1]
     try:
         if error < study.best_value:
             model.save(f'hyperparameter_optimization_output/{data_set_index}/best_model.h5')
@@ -119,7 +101,7 @@ def objective(trial, study, data_set_index):
     return error
 
 
-data_set_index = 3
+data_set_index = 0
 study = optuna.create_study(
     direction='minimize',
     pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
