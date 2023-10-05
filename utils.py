@@ -58,15 +58,24 @@ def plot_multiple_box_plot_series(box_plot_series, save_path='', show=True):
             plt.show()
 
 
-def images_and_targets_from_data_series(data, input_win_size=20):
-    for i in range(len(data)-1-input_win_size):
-        image_data = data[i:input_win_size+i]
-        image = np.array([[[v] for v in list(bbox.values())] for bbox in image_data])
+def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1):
+    if steps_ahead <= 0:
+        raise ValueError("Can't predict negative steps ahead")
+    data = list(map(lambda x: list(x.values()), data))
+    images = []
+    all_targets = []
+    inverse_normalizations = []
+    for i in range(len(data)-1-steps_ahead-input_win_size):
+        image = np.array(data[i:input_win_size+i])
+        image = np.expand_dims(image, len(image.shape))
         inverse_normalization = lambda x: (np.max(image) - np.min(image))*x + np.min(image)
         image = (image - np.min(image))/(np.max(image) - np.min(image))
-        targets = np.array(list(data[input_win_size+i].values()))
+        targets = np.array([data[input_win_size + i + s] for s in range(steps_ahead)])
         targets = (targets - np.min(image))/(np.max(image) - np.min(image))
-        yield image, targets, inverse_normalization
+        images.append(image)
+        all_targets.append(targets)
+        inverse_normalizations.append(inverse_normalization)
+    return np.array(images), np.array(all_targets), inverse_normalizations
 
 
 def create_model(
