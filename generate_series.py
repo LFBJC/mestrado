@@ -10,4 +10,4 @@ for i, seed in tqdm(enumerate(seeds[starting_index:end_index])):
     seed_index = starting_index + i
     np.random.seed(seed)
     data = list_of_lists_to_list_of_boxplots(partitioning_and_prototype_selection(random_walk(n_samples=100000), k_janelas=100))
-    pd.DataFrame.from_records(data).to_csv(f'data/{seed_index}.csv', index=False)
+    pd.DataFrame.from_records(data).to_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/{seed_index}.csv', index=False)

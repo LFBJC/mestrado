@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import VAR
 
+caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/resultados VAR.csv"
 total_seeds = 1000
 steps_ahead_list = [1, 5, 20]
-if os.path.exists('results_summary.csv'):
-    results_df = pd.read_csv('results_summary.csv')
+if os.path.exists(caminho_de_saida):
+    results_df = pd.read_csv(caminho_de_saida)
     max_data_index = max(results_df['Data_index'])
     if max_data_index < total_seeds - 1:
         results_df = pd.concat([
@@ -28,7 +29,7 @@ for data_index in indices_to_use:
         print('#' * 80)
         print(filename)
         print(f'{steps_ahead} steps ahead')
-        df = pd.read_csv('data/'+filename)
+        df = pd.read_csv('E:/mestrado/Pesquisa/Dados simulados/Dados'+filename)
         model = VAR(df)
         model_fitted = model.fit(1)
 
@@ -44,4 +45,4 @@ for data_index in indices_to_use:
 
         print("Mean Magnitude of Relative Errors (MMRE):", mmre)
         print('#' * 80)
-results_df.to_csv('results_summary.csv', index=False)
+results_df.to_csv(caminho_de_saida, index=False)
