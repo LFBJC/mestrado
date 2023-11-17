@@ -10,7 +10,7 @@ import tensorflow as tf
 caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros"
 
 def objective(trial, study, data_set_index, steps_ahead):
-    train_data = pd.read_csv(f'data/{data_set_index}.csv').to_dict('records')
+    train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/{data_set_index}.csv').to_dict('records')
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 100, 800)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
