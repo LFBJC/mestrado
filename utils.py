@@ -1,11 +1,43 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 from tensorflow.keras import models, layers, Input, Model
+from tensorflow.keras.losses import Loss
+from tensorflow.python.ops.numpy_ops import np_config
 from keras import backend as K
 from typing import Literal
 import rpy2.robjects as robjects
+np_config.enable_numpy_behavior()
 
 
+class MMRE_Loss(Loss):
+    def __init__(self, inverse_normalizations):
+        self.inverse_normalizations = inverse_normalizations
+        super().__init__()
+
+    def __call__(self, y_true, y_pred, sample_weight=None):
+        print(y_true.shape, y_pred.shape)
+        denormalized_y_true = tf.identity(y_true)
+        denormalized_y_pred = tf.identity(y_pred)
+        for dim in range(y_true.shape[1]):
+            cond = tf.repeat(tf.range(tf.shape(y_true)[1]).reshape(1, -1), y_true.shape[0], axis=0) == dim
+            print(cond.shape)
+            print(tf.experimental.numpy.sum(denormalized_y_true[:, :dim], axis=-1).shape)
+            add_to_y_true = tf.concat([tf.zeros((tf.shape(y_true)[0], 1), dtype=y_true.dtype), y_true[:, :-1]], axis=1)
+            denormalized_y_true = denormalized_y_true + add_to_y_true
+            del add_to_y_true
+            add_to_y_pred = tf.concat([tf.zeros((tf.shape(y_pred)[0], 1), dtype=y_pred.dtype), y_pred[:, :-1]], axis=1)
+            denormalized_y_pred = denormalized_y_pred + add_to_y_pred
+            del add_to_y_pred
+        def inverse_norm_gen():
+            for fn in self.inverse_normalizations:
+                yield fn
+        denormalized_y_true = tf.map_fn(lambda i: next(inverse_norm_gen()), denormalized_y_true)
+        denormalized_y_pred = tf.map_fn(lambda i: next(inverse_norm_gen()), denormalized_y_pred)
+        loss = MMRE(denormalized_y_true, denormalized_y_pred)
+        if sample_weight is not None:
+            loss = tf.multiply(loss, sample_weight)
+        return loss
 
 def random_walk(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
@@ -65,17 +97,21 @@ def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1
     images = []
     all_targets = []
     inverse_normalizations = []
+    normalizations = []
     for i in range(len(data)-1-steps_ahead-input_win_size):
         image = np.array(data[i:input_win_size+i])
         image = np.expand_dims(image, len(image.shape))
         inverse_normalization = lambda x: (np.max(image) - np.min(image))*x + np.min(image)
-        image = (image - np.min(image))/(np.max(image) - np.min(image))
+        normalization = lambda x: (x - np.min(image))/(np.max(image) - np.min(image))
+        normalized_image = normalization(image)
+        normalizations.append(normalization)
         targets = np.array([data[input_win_size + i + s] for s in range(steps_ahead)])
-        targets = (targets - np.min(image))/(np.max(image) - np.min(image))
-        images.append(image)
+        images.append(normalized_image)
         all_targets.append(targets)
         inverse_normalizations.append(inverse_normalization)
-    return np.array(images), np.array(all_targets), inverse_normalizations
+        assert (all([b_plot[0] < b_plot[1] < b_plot[2] < b_plot[3] < b_plot[4] for targets in all_targets for b_plot in
+                     targets]))
+    return np.array(images), np.array(all_targets), inverse_normalizations, normalizations
 
 
 def create_model(
@@ -96,13 +132,13 @@ def create_model(
     flatten = layers.Flatten()(conv_2)
     hidden_dense = layers.Dense(dense_neurons, activation=dense_activation)(flatten)
     out_min = layers.Dense(1)(hidden_dense)
-    out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
+    out_ranges = layers.Dense(input_shape[1]-1, activation='sigmoid')(hidden_dense)
     out = layers.concatenate([out_min, out_ranges])
     return Model(inputs=[input], outputs=[out])
 
 
 def MMRE(y_true, y_pred):
-    return K.mean(K.abs((y_true-y_pred)/(y_true + K.epsilon())))
+    return K.mean(K.abs((y_true-y_pred)/(y_pred + K.epsilon())))
 
 
 def partitioning_and_prototype_selection(series, k_janelas=30):

@@ -29,7 +29,7 @@ for data_index in indices_to_use:
         print('#' * 80)
         print(filename)
         print(f'{steps_ahead} steps ahead')
-        df = pd.read_csv('E:/mestrado/Pesquisa/Dados simulados/Dados'+filename)
+        df = pd.read_csv('E:/mestrado/Pesquisa/Dados simulados/Dados/'+filename)
         model = VAR(df)
         model_fitted = model.fit(1)
 
@@ -37,7 +37,7 @@ for data_index in indices_to_use:
         forecast = model_fitted.forecast(df.values, steps=steps_ahead)
 
         # Calcular os erros relativos
-        relative_errors = np.abs((forecast - df.values[-1]) / df.values[-1])
+        relative_errors = np.abs((forecast - df.values[-1]) / forecast)
 
         # Calcular o MMRE
         mmre = np.mean(relative_errors)

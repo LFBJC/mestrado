@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import optuna
 import numpy as np
 import pandas as pd
-from utils import create_model, MMRE, images_and_targets_from_data_series
+from utils import create_model, MMRE, MMRE_Loss, images_and_targets_from_data_series, plot_multiple_box_plot_series, plot_single_box_plot_series
 from tqdm import tqdm
 import tensorflow as tf
-caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros"
+caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros v10"
 
 def objective(trial, study, data_set_index, steps_ahead):
     train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/{data_set_index}.csv').to_dict('records')
+    # plot_single_box_plot_series(train_data)
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 100, 800)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
@@ -46,31 +47,50 @@ def objective(trial, study, data_set_index, steps_ahead):
         activation_conv_2=activation_conv_2,
         dense_neurons=dense_neurons, dense_activation='sigmoid'
     )
+    N_EPOCHS = 50
+    X, Y, inverse_normalizations, normalizations = images_and_targets_from_data_series(
+        train_data, input_win_size=win_size, steps_ahead=steps_ahead
+    )
     model.compile(
         optimizer=trial.suggest_categorical('optimizer', ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
         loss=trial.suggest_categorical('loss', [
             'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
-            'mean_absolute_error'
+            'mean_absolute_error' # , MMRE_Loss(inverse_normalizations)
         ]),
+        # loss=MMRE_Loss(inverse_normalizations),
         metrics=[MMRE]
     )
-    N_EPOCHS = 50
-    X, Y, inverse_normalizations = images_and_targets_from_data_series(
-        train_data, input_win_size=win_size, steps_ahead=steps_ahead
-    )
-    Y_ = Y
+    Y_ = np.array([f(y) for f, y in zip(normalizations, Y)])
     Y_[:, :, 1:] -= Y_[:, :, :-1]
     model.fit(X, Y_[:, 0, :], batch_size=X.shape[0], epochs=N_EPOCHS, verbose=0)
     T = model.predict(X, verbose=0)
+    for dim in range(1, T.shape[1]):
+        T[:, dim] += T[:, dim - 1]
+    if not (all([b_plot[0] <= b_plot[1] <= b_plot[2] <= b_plot[3] <= b_plot[4] for b_plot in T])):
+        raise ValueError(f"DEU ERRO ANTES DE INVERTER A NORMALIZAÇÃO {b_plot}")
+    T = np.array([f(t) for f, t in zip(inverse_normalizations, T)])
+    if not (all([b_plot[0] <= b_plot[1] <= b_plot[2] <= b_plot[3] <= b_plot[4] for b_plot in T])):
+        raise ValueError(f"DEU ERRO APÓS DE INVERTER A NORMALIZAÇÃO {b_plot}")
+    # plot_multiple_box_plot_series([
+    #     [{'whislo': row[0], 'q1': row[1], 'med': row[2], 'q3': row[3], 'whishi': row[4]} for row in Y_.squeeze()],
+    #     [{'whislo': row[0], 'q1': row[1], 'med': row[2], 'q3': row[3], 'whishi': row[4]} for row in T]
+    # ])
     error = 0
     if steps_ahead == 1:
-        error = tf.keras.backend.eval(MMRE(Y_[:, 0, :], T))
+        error = tf.keras.backend.eval(MMRE(Y[:, 0, :], T))
     else:
         for s in range(2, steps_ahead+1):
-            T = model.predict(X, verbose=0).reshape(T.shape[0], 1, -1, 1)
+            T = model.predict(X, verbose=0)
+            for dim in range(1, T.shape[1]):
+                T[:, dim] += T[:, dim - 1]
+            T = T.reshape(T.shape[0], 1, -1, 1)
+            T = np.array([f(t) for f, t in zip(inverse_normalizations, T)])
             X_ = np.concatenate([X[:, 1:, :, :], T], axis=1)
             if s == steps_ahead:
-                error = tf.keras.backend.eval(MMRE(Y_[:, s-1, :], model.predict(X_)))
+                predicted = model.predict(X_)
+                for dim in range(1, predicted.shape[1]):
+                    predicted[:, dim] += predicted[:, dim - 1]
+                error = tf.keras.backend.eval(MMRE(Y[:, s-1, :], np.array([f(t) for f, t in zip(inverse_normalizations, predicted)])))
     if np.isnan(error):
         print(debug)
     try:
@@ -92,8 +112,9 @@ def objective(trial, study, data_set_index, steps_ahead):
     return error
 
 
-steps_ahead = 1 # [1, 5, 20]
-for data_set_index in range(100):
+steps_ahead = 20 # [1, 5, 20]
+n_trials = 300
+for data_set_index in range(0, 10, 2):
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     if not os.path.exists(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'):
         study = optuna.create_study(
@@ -101,7 +122,7 @@ for data_set_index in range(100):
             pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
             study_name=f'hyperparameter_opt_{data_set_index}'
         )
-        study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=100)
+        study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials)
     else:
         df_temp = pd.read_csv(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv')
         if df_temp.shape[0] == 0:
@@ -110,8 +131,8 @@ for data_set_index in range(100):
                 pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
                 study_name=f'hyperparameter_opt_{data_set_index}'
             )
-            study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=100)
-        elif df_temp.shape[0] < 100:
+            study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials)
+        elif df_temp.shape[0] < n_trials:
             study = optuna.create_study(
                 direction='minimize',
                 study_name=f'hyperparameter_opt_{data_set_index}'
@@ -141,7 +162,8 @@ for data_set_index in range(100):
                         value=row['score']
                     )
                 )
-            study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=100-df_temp.shape[0])
+            study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials-df_temp.shape[0])
             del df_temp
         else:
             del df_temp
+os.system('shutdown -s')
