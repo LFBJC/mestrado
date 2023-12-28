@@ -113,7 +113,7 @@ def objective(trial, study, data_set_index, steps_ahead):
 
 
 steps_ahead = 20 # [1, 5, 20]
-n_trials = 300
+n_trials = 100
 for data_set_index in range(0, 10, 2):
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     if not os.path.exists(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'):
