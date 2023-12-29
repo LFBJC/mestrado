@@ -41,12 +41,27 @@ class MMRE_Loss(Loss):
 
 def random_walk(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
-        begin_value = np.random.rand()
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
     out = [begin_value]
     for step in range(n_samples-1):
         out.append(out[-1] + (np.random.normal()*2 - 1))
     return out
 
+def logistic_map(n_samples: int = 10000, begin_value: float=None):
+    if begin_value is None:
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+    out = [begin_value]
+    for step in range(n_samples-1):
+        out.append(0.7*out[-1]*(1 - out[-1]))
+    return out
+
+def henom_map(n_samples: int = 10000, begin_value: float=None):
+    if begin_value is None:
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+    out = [begin_value]
+    for step in range(n_samples-1):
+        out.append(1 - 1.4*(out[-1]**2) + 0.3*out[-2])
+    return out
 
 def aggregate_data_by_chunks(data, chunk_size: int = 10):
     box_plots = []
