@@ -1,3 +1,7 @@
+import threading
+import warnings
+from typing import List
+import keras
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -6,7 +10,15 @@ from tensorflow.keras.losses import Loss
 from tensorflow.python.ops.numpy_ops import np_config
 from keras import backend as K
 from typing import Literal
+import math
+from tqdm import tqdm
+from functools import partial
+# from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
 import rpy2.robjects as robjects
+from rpy2.robjects import conversion, default_converter
+from rpy2.robjects.packages import importr
+utils = importr('utils')
 np_config.enable_numpy_behavior()
 
 
@@ -44,7 +56,7 @@ def random_walk(n_samples: int = 10000, begin_value: float=None):
         begin_value = np.random.rand() # valor aleatório entre 0 e 1
     out = [begin_value]
     for step in range(n_samples-1):
-        out.append(out[-1] + (np.random.normal()*2 - 1))
+        out.append(out[-1] + np.random.normal())
     return out
 
 def logistic_map(n_samples: int = 10000, begin_value: float=None):
@@ -77,8 +89,10 @@ def aggregate_data_by_chunks(data, chunk_size: int = 10):
     return box_plots
 
 
-def plot_single_box_plot_series(box_plot_series, splitters=[]):
+def plot_single_box_plot_series(box_plot_series, splitters=[], title=''):
     fig, ax = plt.subplots()
+    if title != '':
+        ax.set_title(title)
     ax.bxp(box_plot_series, showfliers=False)
     if splitters:
         for splitter in splitters:
@@ -152,12 +166,44 @@ def create_model(
     return Model(inputs=[input], outputs=[out])
 
 
+def create_lstm_model(
+    input_shape: tuple, num_units_by_layer: List[int], activations: List[str], recurrent_activations: List[str],
+    dropouts: List[float], recurrent_dropouts: List[float]
+):
+    input_ = Input(shape=input_shape)
+    for i, (num_units, activation, recurrent_activation, dropout, recurrent_dropout) in enumerate(zip(
+            num_units_by_layer, activations, recurrent_activations, dropouts, recurrent_dropouts
+    )):
+        if i == 0:
+            lstm_out = layers.LSTM(
+                num_units, activation=activation, recurrent_activation=recurrent_activation, dropout=dropout,
+                recurrent_dropout=recurrent_dropout, return_sequences=(i<len(dropouts)-1)
+            )(input_)
+        else:
+            lstm_out = layers.LSTM(
+                num_units, activation=activation, recurrent_activation=recurrent_activation, dropout=dropout,
+                recurrent_dropout=recurrent_dropout, return_sequences=(i < len(dropouts) - 1)
+            )(lstm_out)
+    out_min = layers.Dense(1)(lstm_out)
+    out_ranges = layers.Dense(input_shape[1] - 1, activation='sigmoid')(lstm_out)
+    out = layers.concatenate([out_min, out_ranges])
+    model = Model(inputs=[input_], outputs=[out])
+    return model
+
+
 def MMRE(y_true, y_pred):
     return K.mean(K.abs((y_true-y_pred)/(y_pred + K.epsilon())))
 
 
-def partitioning_and_prototype_selection(series, k_janelas=30):
+def partitioning_and_prototype_selection(series, k_janelas=30, alpha=0.05, k_vizinhos=3):
     # this R code is a copy of the code from Dailys
+    instalacoes = """
+        if (!require('tseries')) install.packages('tseries')
+        if (!require('FNN')) install.packages('FNN')
+        if (!require('lmtest')) install.packages('lmtest')
+        if (!require('fpp')) install.packages('fpp')
+        if (!require('xts')) install.packages('xts')
+    """
     importacoes_de_bibliotecas_e_def_de_funcoes = '''
         library(tseries)
         library(FNN)
@@ -316,17 +362,97 @@ prototipos <- function(serie, vizinhos, mutua, a, qj){
                       f'qj <- kJanelas(y, {k_janelas}, 0.4)\n' \
                       f'amostras_y <- particionar (y)\n' \
                       f'amostras_x <- particionar(x)'
-    execucao_do_codigo_em_si = '''
-        vizinhos <- k_vizinhos(amostras_x,3)
+    execucao_do_codigo_em_si = f'''
+        vizinhos <- k_vizinhos(amostras_x,{k_vizinhos})
 
         Infor_mutua <- IM(amostras_x, amostras_y, y)
 
-        serie_prototipos <- prototipos(amostras_y, vizinhos, Infor_mutua, 0.05, qj)
+        serie_prototipos <- prototipos(amostras_y, vizinhos, Infor_mutua, {alpha}, qj)
         serie_prototipos
     '''
-    result = robjects.r(importacoes_de_bibliotecas_e_def_de_funcoes + def_series_no_r + execucao_do_codigo_em_si)
+    result = robjects.r(instalacoes + importacoes_de_bibliotecas_e_def_de_funcoes + def_series_no_r + execucao_do_codigo_em_si)
     result_py = [list(x) for x in result]
     return result_py
+
+
+def partitioning_and_prototype_selection_v2(series, particoes, alpha=0.01, k=3, silent=True):
+    serie_particionada = [
+        (indice_particao, series[indice_particao:int((indice_particao + 1) * len(series) / particoes)])
+        for indice_particao in range(particoes)
+    ]
+    # new_series = serie_particionada
+    # Create a partial function with fixed arguments
+    process_partial = partial(process_partition, alpha=alpha, k=k, silent=silent, num_partitions=particoes)
+   
+    with Pool(processes=min(particoes, 5)) as pool:
+        new_series = list(pool.map(process_partial, serie_particionada))
+
+    return new_series
+
+
+def process_partition(tupla_index_W, alpha, k, silent, num_partitions):
+    i, W = tupla_index_W
+    return prototype_selection_for_partition(W, alpha, k, silent, index_partition=i, num_partitions=num_partitions)
+
+
+
+def prototype_selection_for_partition(partition, alpha=0.01, k=3, silent=True, index_partition=1, num_partitions=10):
+    if k < len(partition):
+        if not silent:
+            print('W:', partition)
+        pbar = tqdm(
+            total=len(partition)*2, colour='yellow', desc=f"progress for partition {index_partition+1}/{num_partitions}"
+        )
+        matriz_de_vizinhos = []
+        vetor_de_informacao_mutua = []  # PSI
+        Z = []
+        for s, ys in enumerate(partition):
+            vizinhos_mais_proximos = np.argsort([np.linalg.norm(x - ys) if i != s else np.inf for i, x in enumerate(partition)])[:k]
+            matriz_de_vizinhos.append(vizinhos_mais_proximos)
+            del vizinhos_mais_proximos
+            Z.append(partition[:s] + partition[s + 1:])
+            if len(partition) > 1:
+                partition_r_vector_str =  f"c{tuple(partition)}"
+            else:
+                partition_r_vector_str = f"c({partition[0]})"
+            if len(Z[s]) > 1:
+                Z_s_r = f"c{tuple(Z[s])}"
+            else:
+                Z_s_r = f"c({Z[s][0]})"
+            r_code = f"library(FNN)\nmutinfo({partition_r_vector_str}, {Z_s_r}, k = 1, direct=TRUE)"
+            result = utils.capture_output(robjects.r(r_code))
+            vetor_de_informacao_mutua.append(
+                result[0]
+            )
+            pbar.update(1)
+        if not silent:
+            spaces = int(len(partition) / k + 1) * ' '
+            for row in matriz_de_vizinhos:
+                print('|' + spaces.join([str(x + 1) for x in row]) + '|')
+            for s, ys in enumerate(partition):
+                SUBSCRIPT = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+                print(f'Z{s + 1}:'.translate(SUBSCRIPT), Z[s])
+                print(f'Ψ{s + 1}:'.translate(SUBSCRIPT), vetor_de_informacao_mutua[s])
+        vetor_de_informacao_mutua = np.array(vetor_de_informacao_mutua)
+        dividendo = (vetor_de_informacao_mutua - vetor_de_informacao_mutua.min(axis=0))
+        divisor = (vetor_de_informacao_mutua.max(axis=0) - vetor_de_informacao_mutua.min(axis=0))
+        vetor_de_informacao_mutua = dividendo / divisor
+        if not silent:
+            print('Normalized Ψ:', vetor_de_informacao_mutua)
+        delta = []
+        for i, psi in enumerate(vetor_de_informacao_mutua):
+            cont = 0
+            for j in range(k):
+                diff = psi - vetor_de_informacao_mutua[matriz_de_vizinhos[i][j]]
+                if diff > alpha:
+                    cont += 1
+            pbar.update(1)
+            if cont < k:
+                delta.append(partition[i])
+        return delta
+    else:
+        warnings.warn(f"k is {k} which is las than len(W)={len(partition)}. skipping!!!")
+        return partition
 
 
 def list_of_lists_to_list_of_boxplots(data):
@@ -341,7 +467,17 @@ def list_of_lists_to_list_of_boxplots(data):
         })
     return box_plots
 
+
+def simple_partition(series, particoes):
+    return [
+        series[indice_particao:int((indice_particao + 1) * len(series) / particoes)]
+        for indice_particao in range(particoes)
+    ]
+
 if __name__ == "__main__":
     # plot_single_box_plot_series(aggregate_data_by_chunks(random_walk(), 100))
     # plot_multiple_box_plot_series([aggregate_data_by_chunks(random_walk(), 100), aggregate_data_by_chunks(random_walk(), 100)])
-    print(prototype_selection(np.arange(1000)))
+    # print(prototype_selection(np.arange(1000)))
+    selected = partitioning_and_prototype_selection_v2([0.1064, 0.3803, 0.9427, 0.2161, 0.6775], particoes=1, silent=False)
+    print('selected:', selected)
+    # print('old method:', partitioning_and_prototype_selection([0.1064, 0.3803, 0.9427, 0.2161, 0.6775], k_janelas=5, alpha=0.01))

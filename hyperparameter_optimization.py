@@ -4,16 +4,19 @@ import matplotlib.pyplot as plt
 import optuna
 import numpy as np
 import pandas as pd
-from utils import create_model, MMRE, MMRE_Loss, images_and_targets_from_data_series, plot_multiple_box_plot_series, plot_single_box_plot_series
+from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_targets_from_data_series,\
+    plot_multiple_box_plot_series, plot_single_box_plot_series
 from tqdm import tqdm
 import tensorflow as tf
-caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros v10"
+net_type = "LSTM"
+caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros {net_type}"
 
-def objective(trial, study, data_set_index, steps_ahead):
-    train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/{data_set_index}.csv').to_dict('records')
+def objective_cnn(trial, study, data_set_index, steps_ahead):
+    train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/train.csv').to_dict('records')
+    test_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/test.csv').to_dict('records')
     # plot_single_box_plot_series(train_data)
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
-    win_size = trial.suggest_int('win_size', 100, 800)
+    win_size = trial.suggest_int('win_size', 5, len(train_data)//10)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
     kernel_size_conv_1 = (
         trial.suggest_int('kernel_size_conv_1[0]', win_size//5, win_size//3),
@@ -63,7 +66,10 @@ def objective(trial, study, data_set_index, steps_ahead):
     Y_ = np.array([f(y) for f, y in zip(normalizations, Y)])
     Y_[:, :, 1:] -= Y_[:, :, :-1]
     model.fit(X, Y_[:, 0, :], batch_size=X.shape[0], epochs=N_EPOCHS, verbose=0)
-    T = model.predict(X, verbose=0)
+    X_test, Y_test, inverse_normalizations, normalizations = images_and_targets_from_data_series(
+        test_data, input_win_size=win_size, steps_ahead=steps_ahead
+    )
+    T = model.predict(X_test, verbose=0)
     for dim in range(1, T.shape[1]):
         T[:, dim] += T[:, dim - 1]
     if not (all([b_plot[0] <= b_plot[1] <= b_plot[2] <= b_plot[3] <= b_plot[4] for b_plot in T])):
@@ -77,20 +83,20 @@ def objective(trial, study, data_set_index, steps_ahead):
     # ])
     error = 0
     if steps_ahead == 1:
-        error = tf.keras.backend.eval(MMRE(Y[:, 0, :], T))
+        error = tf.keras.backend.eval(MMRE(Y_test[:, 0, :], T))
     else:
         for s in range(2, steps_ahead+1):
-            T = model.predict(X, verbose=0)
+            T = model.predict(X_test, verbose=0)
             for dim in range(1, T.shape[1]):
                 T[:, dim] += T[:, dim - 1]
             T = T.reshape(T.shape[0], 1, -1, 1)
             T = np.array([f(t) for f, t in zip(inverse_normalizations, T)])
-            X_ = np.concatenate([X[:, 1:, :, :], T], axis=1)
+            X_ = np.concatenate([X_test[:, 1:, :, :], T], axis=1)
             if s == steps_ahead:
                 predicted = model.predict(X_)
                 for dim in range(1, predicted.shape[1]):
                     predicted[:, dim] += predicted[:, dim - 1]
-                error = tf.keras.backend.eval(MMRE(Y[:, s-1, :], np.array([f(t) for f, t in zip(inverse_normalizations, predicted)])))
+                error = tf.keras.backend.eval(MMRE(Y_test[:, s-1, :], np.array([f(t) for f, t in zip(inverse_normalizations, predicted)])))
     if np.isnan(error):
         print(debug)
     try:
@@ -112,9 +118,93 @@ def objective(trial, study, data_set_index, steps_ahead):
     return error
 
 
-steps_ahead = 20 # [1, 5, 20]
+def objective_lstm(trial, study, data_set_index, steps_ahead):
+    train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/train.csv').to_dict('records')
+    test_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/test.csv').to_dict('records')
+    win_size = trial.suggest_int('win_size', 5, len(train_data) // 10)
+    data = np.array([np.array(list(x.values())) for x in train_data])
+    def to_ranges(x):
+        ret = x
+        for k in range(len(x), 1):
+            ret[k] -= x[k-1]
+        return ret
+
+    def from_ranges(x):
+        ret = x
+        for k in range(1, len(x)):
+            ret[k] += x[k - 1]
+        return ret
+    normalizations_train = [lambda x: (x - np.min(data[i:i+1]))/(np.max(data[i:i+1])-np.min(data[i:i+1]))
+                            for i in range(0, win_size*((len(data) - steps_ahead)//win_size), win_size)]
+    X = np.array([to_ranges(normalizations_train[j](data[i:i+win_size+1])) for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - steps_ahead)//win_size))])
+    Y = np.array([to_ranges(normalizations_train[j](data[i+steps_ahead])) for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - steps_ahead)//win_size))])
+    # plot_single_box_plot_series(train_data)
+    os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
+    num_layers = trial.suggest_int("Número de camadas", 1, 5)
+    units=[]
+    activations = []
+    recurrent_activations = []
+    dropouts = []
+    recurrent_dropouts = []
+    for camada in range(num_layers):
+        if camada == 0:
+            units.append(trial.suggest_int(f"Unidades na camada {camada}", 4, 64))
+        else:
+            units.append(trial.suggest_int(f"Unidades na camada {camada}", 3, units[-1]))
+        activations.append("sigmoid")
+        recurrent_activations.append("sigmoid")
+        dropouts.append(trial.suggest_float(f"Dropout da camada {camada}", 0.1, 0.5))
+        recurrent_dropouts.append(trial.suggest_float(f"Dropout recorrente da camada {camada}", 0.1, 0.5))
+    model = create_lstm_model(X.shape[1:], units, activations, recurrent_activations, dropouts, recurrent_dropouts)
+    N_EPOCHS = 50
+    model.compile(
+        optimizer=trial.suggest_categorical('optimizer', ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
+        loss=trial.suggest_categorical('loss', [
+            'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
+            'mean_absolute_error'
+        ]),
+        metrics=[MMRE]
+    )
+    model.fit(X, Y, batch_size=len(X), epochs=N_EPOCHS, verbose=0)
+    data = np.array([np.array(list(x.values())) for x in test_data])
+    normalizations_test = [lambda x: (x - np.min(data[i:i + 1])) / (np.max(data[i:i + 1]) - np.min(data[i:i + 1]))
+                            for i in range(0, len(data) - steps_ahead, win_size)]
+    inverse_normalizations_test = [
+        lambda x: x * (np.max(data[i:i + 1]) - np.min(data[i:i + 1])) + np.min(data[i:i + 1])
+        for i in range(0, len(data) - steps_ahead, win_size)
+    ]
+    X_test = np.array([to_ranges(normalizations_test[j](data[i:i + win_size + 1])) for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - steps_ahead)//win_size))])
+    Y_test = np.array([to_ranges(normalizations_test[j](data[i + steps_ahead])) for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - steps_ahead)//win_size))])
+    T = model.predict(X_test, verbose=0)
+    error = tf.keras.backend.eval(
+        MMRE(
+            np.array([inverse_normalizations_test[i](from_ranges(x)) for i, x in enumerate(Y_test)]),
+            np.array([inverse_normalizations_test[i](from_ranges(x)) for i, x in enumerate(T)])
+        )
+    )
+    try:
+        if error < study.best_value:
+            model.save(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/best_model.h5')
+    except ValueError:
+        # if no trials are completed yet save the first trial
+        model.save(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/best_model.h5')
+    hist_path = f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'
+    if os.path.exists(hist_path):
+        opt_hist_df = pd.concat([pd.read_csv(hist_path), pd.DataFrame.from_records([{**trial.params, 'score': error}])])
+    else:
+        opt_hist_df = pd.DataFrame.from_records([{**trial.params, 'score': error}])
+    opt_hist_df.to_csv(hist_path, index=False)
+    return error
+
+
+
+steps_ahead = 1 # [1, 5, 20]
 n_trials = 100
-for data_set_index in range(0, 10, 2):
+if net_type == "LSTM":
+    objective = objective_lstm
+else:
+    objective = objective_cnn
+for data_set_index in range(0, 10):
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     if not os.path.exists(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'):
         study = optuna.create_study(
@@ -166,4 +256,4 @@ for data_set_index in range(0, 10, 2):
             del df_temp
         else:
             del df_temp
-os.system('shutdown -s')
+# os.system('shutdown -s')
