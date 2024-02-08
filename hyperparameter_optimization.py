@@ -8,7 +8,7 @@ from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_t
     plot_multiple_box_plot_series, plot_single_box_plot_series
 from tqdm import tqdm
 import tensorflow as tf
-net_type = "LSTM"
+net_type = "CNN"
 caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros {net_type}"
 
 def objective_cnn(trial, study, data_set_index, steps_ahead):
@@ -16,7 +16,7 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
     test_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/test.csv').to_dict('records')
     # plot_single_box_plot_series(train_data)
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
-    win_size = trial.suggest_int('win_size', 5, len(train_data)//10)
+    win_size = trial.suggest_int('win_size', 10, len(train_data)//10)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
     kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', [(2, 2), (3, 2), (3, 3)])
     #     (
@@ -124,7 +124,7 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
 def objective_lstm(trial, study, data_set_index, steps_ahead):
     train_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/train.csv').to_dict('records')
     test_data = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_set_index}/test.csv').to_dict('records')
-    win_size = trial.suggest_int('win_size', 5, len(train_data) // 10)
+    win_size = trial.suggest_int('win_size', 10, len(train_data) // 10)
     data = np.array([np.array(list(x.values())) for x in train_data])
     def to_ranges(x):
         ret = x
