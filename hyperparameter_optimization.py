@@ -18,7 +18,7 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 10, len(train_data)//10)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
-    kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', [(2, 2), (3, 2), (3, 3)])
+    kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', [(2, 2), (3, 2)])
     #     (
     #     trial.suggest_int('kernel_size_conv_1[0]', win_size//5, win_size//3),
     #     trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
@@ -33,7 +33,7 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
     filters_conv_2 = trial.suggest_int('filters_conv_2', 6, filters_conv_1 // 2)
     w2 = (win_size - kernel_size_conv_1[0]) + 1
     w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
-    kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', [(2, 2), (3, 2), (3, 3)])
+    kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', [(2, 2), (3, 2)])
     #     (
     #     trial.suggest_int('kernel_size_conv_2[0]', 1, w3 - 1),
     #     1
@@ -201,62 +201,63 @@ def objective_lstm(trial, study, data_set_index, steps_ahead):
 
 
 
-steps_ahead = 1 # [1, 5, 20]
+steps_ahead_list = [1, 5, 20]
 n_trials = 100
 if net_type == "LSTM":
     objective = objective_lstm
 else:
     objective = objective_cnn
-for data_set_index in range(0, 10):
-    os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
-    if not os.path.exists(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'):
-        study = optuna.create_study(
-            direction='minimize',
-            pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
-            study_name=f'hyperparameter_opt_{data_set_index}'
-        )
-        study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials)
-    else:
-        df_temp = pd.read_csv(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv')
-        if df_temp.shape[0] == 0:
+for steps_ahead in steps_ahead_list:
+    for data_set_index in range(0, 10):
+        os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
+        if not os.path.exists(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv'):
             study = optuna.create_study(
                 direction='minimize',
                 pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
                 study_name=f'hyperparameter_opt_{data_set_index}'
             )
             study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials)
-        elif df_temp.shape[0] < n_trials:
-            study = optuna.create_study(
-                direction='minimize',
-                study_name=f'hyperparameter_opt_{data_set_index}'
-            )
-            for _, row in df_temp.iterrows():
-                study.add_trial(
-                    optuna.trial.create_trial(
-                        params={c: v for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']},
-                        distributions={
-                            'win_size': optuna.distributions.IntDistribution(100, 800),
-                            'filters_conv_1': optuna.distributions.IntDistribution(12, 50),
-                            'kernel_size_conv_1[0]': optuna.distributions.IntDistribution(row['win_size']//5, row['win_size']//3),
-                            'kernel_size_conv_1[1]': optuna.distributions.IntDistribution(1, 5),
-                            'activation_conv_1': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
-                            'pool_size_1[0]': optuna.distributions.IntDistribution(1, (row['win_size'] - row['kernel_size_conv_1[0]'] + 1)//2),
-                            'pool_type_1': optuna.distributions.CategoricalDistribution(['max', 'average']),
-                            'filters_conv_2': optuna.distributions.IntDistribution(6, row['filters_conv_1'] // 2),
-                            'kernel_size_conv_2[0]': optuna.distributions.IntDistribution(1, row['w3'] - 1),
-                            'activation_conv_2': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
-                            'dense_neurons': optuna.distributions.IntDistribution(5, row['w4']*row['h4']*row['filters_conv_2'] - 1),
-                            'optimizer': optuna.distributions.CategoricalDistribution(['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
-                            'loss': optuna.distributions.CategoricalDistribution([
-                                'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
-                                'mean_absolute_error'
-                            ])
-                        },
-                        value=row['score']
-                    )
-                )
-            study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials-df_temp.shape[0])
-            del df_temp
         else:
-            del df_temp
+            df_temp = pd.read_csv(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}/opt_hist.csv')
+            if df_temp.shape[0] == 0:
+                study = optuna.create_study(
+                    direction='minimize',
+                    pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
+                    study_name=f'hyperparameter_opt_{data_set_index}'
+                )
+                study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials)
+            elif df_temp.shape[0] < n_trials:
+                study = optuna.create_study(
+                    direction='minimize',
+                    study_name=f'hyperparameter_opt_{data_set_index}'
+                )
+                for _, row in df_temp.iterrows():
+                    study.add_trial(
+                        optuna.trial.create_trial(
+                            params={c: v for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']},
+                            distributions={
+                                'win_size': optuna.distributions.IntDistribution(100, 800),
+                                'filters_conv_1': optuna.distributions.IntDistribution(12, 50),
+                                'kernel_size_conv_1[0]': optuna.distributions.IntDistribution(row['win_size']//5, row['win_size']//3),
+                                'kernel_size_conv_1[1]': optuna.distributions.IntDistribution(1, 5),
+                                'activation_conv_1': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
+                                'pool_size_1[0]': optuna.distributions.IntDistribution(1, (row['win_size'] - row['kernel_size_conv_1[0]'] + 1)//2),
+                                'pool_type_1': optuna.distributions.CategoricalDistribution(['max', 'average']),
+                                'filters_conv_2': optuna.distributions.IntDistribution(6, row['filters_conv_1'] // 2),
+                                'kernel_size_conv_2[0]': optuna.distributions.IntDistribution(1, row['w3'] - 1),
+                                'activation_conv_2': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
+                                'dense_neurons': optuna.distributions.IntDistribution(5, row['w4']*row['h4']*row['filters_conv_2'] - 1),
+                                'optimizer': optuna.distributions.CategoricalDistribution(['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
+                                'loss': optuna.distributions.CategoricalDistribution([
+                                    'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
+                                    'mean_absolute_error'
+                                ])
+                            },
+                            value=row['score']
+                        )
+                    )
+                study.optimize(lambda trial: objective(trial, study, data_set_index, steps_ahead), n_trials=n_trials-df_temp.shape[0])
+                del df_temp
+            else:
+                del df_temp
 # os.system('shutdown -s')
