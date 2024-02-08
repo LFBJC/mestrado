@@ -8,7 +8,7 @@ from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_t
     plot_multiple_box_plot_series, plot_single_box_plot_series
 from tqdm import tqdm
 import tensorflow as tf
-net_type = "CNN"
+net_type = "LSTM"
 caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/Saída da otimização de hiperparâmetros {net_type}"
 
 def objective_cnn(trial, study, data_set_index, steps_ahead):
@@ -24,7 +24,7 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
     #     trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
     # )
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
-    pool_size_1 = trial.suggest_categorical('pool_size_1', [(2, 1), (3, 1), (2, 2), (3, 2)])
+    pool_size_1 = trial.suggest_categorical('pool_size_1', [(2, 1), (3, 1)])
     #     (
     #     trial.suggest_int('pool_size_1[0]', 1, (win_size - kernel_size_conv_1[0] + 1)//2),
     #     1
