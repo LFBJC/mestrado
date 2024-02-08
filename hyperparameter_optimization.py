@@ -18,23 +18,26 @@ def objective_cnn(trial, study, data_set_index, steps_ahead):
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
     win_size = trial.suggest_int('win_size', 5, len(train_data)//10)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 12, 50)
-    kernel_size_conv_1 = (
-        trial.suggest_int('kernel_size_conv_1[0]', win_size//5, win_size//3),
-        trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
-    )
+    kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', [(2, 2), (3, 2), (3, 3)])
+    #     (
+    #     trial.suggest_int('kernel_size_conv_1[0]', win_size//5, win_size//3),
+    #     trial.suggest_int('kernel_size_conv_1[1]', 1, 5)
+    # )
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
-    pool_size_1 = (
-        trial.suggest_int('pool_size_1[0]', 1, (win_size - kernel_size_conv_1[0] + 1)//2),
-        1
-    )
+    pool_size_1 = trial.suggest_categorical('pool_size_1', [(2, 1), (3, 1), (2, 2), (3, 2)])
+    #     (
+    #     trial.suggest_int('pool_size_1[0]', 1, (win_size - kernel_size_conv_1[0] + 1)//2),
+    #     1
+    # )
     pool_type_1 = trial.suggest_categorical('pool_type_1', ['max', 'average'])
     filters_conv_2 = trial.suggest_int('filters_conv_2', 6, filters_conv_1 // 2)
     w2 = (win_size - kernel_size_conv_1[0]) + 1
     w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
-    kernel_size_conv_2 = (
-        trial.suggest_int('kernel_size_conv_2[0]', 1, w3 - 1),
-        1
-    )
+    kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', [(2, 2), (3, 2), (3, 3)])
+    #     (
+    #     trial.suggest_int('kernel_size_conv_2[0]', 1, w3 - 1),
+    #     1
+    # )
     print(f'w3: {w3}\nkernel conv 2: {kernel_size_conv_2}')
     w4 = (w3 - kernel_size_conv_2[0]) + 1
     h4 = (7 - kernel_size_conv_1[1] - pool_size_1[1])//pool_size_1[1] - kernel_size_conv_2[1] + 1

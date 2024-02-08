@@ -161,7 +161,7 @@ def create_model(
     flatten = layers.Flatten()(conv_2)
     hidden_dense = layers.Dense(dense_neurons, activation=dense_activation)(flatten)
     out_min = layers.Dense(1)(hidden_dense)
-    out_ranges = layers.Dense(input_shape[1]-1, activation='sigmoid')(hidden_dense)
+    out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
     out = layers.concatenate([out_min, out_ranges])
     return Model(inputs=[input], outputs=[out])
 
@@ -185,7 +185,7 @@ def create_lstm_model(
                 recurrent_dropout=recurrent_dropout, return_sequences=(i < len(dropouts) - 1)
             )(lstm_out)
     out_min = layers.Dense(1)(lstm_out)
-    out_ranges = layers.Dense(input_shape[1] - 1, activation='sigmoid')(lstm_out)
+    out_ranges = layers.Dense(input_shape[1] - 1, activation='relu')(lstm_out)
     out = layers.concatenate([out_min, out_ranges])
     model = Model(inputs=[input_], outputs=[out])
     return model
