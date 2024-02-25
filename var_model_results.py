@@ -4,8 +4,9 @@ import numpy as np
 from statsmodels.tsa.api import VAR
 from utils import plot_single_box_plot_series, plot_multiple_box_plot_series
 
-caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/resultados VAR.csv"
-num_sets = 10
+caminho_dados = 'E:/mestrado/Pesquisa/Dados simulados/Dados/config 4'
+caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/resultados VAR conf 4.csv"
+num_sets = 143
 lags = 1
 steps_ahead_list = [1, 5, 20]
 if os.path.exists(caminho_de_saida):
@@ -28,11 +29,10 @@ indices_to_use = np.arange(num_sets)
 for data_index in indices_to_use:
     for steps_ahead in steps_ahead_list:
         if np.isnan(results_df[f'VAR_result ({steps_ahead} steps ahead)'].iloc[data_index]):
-            df = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_index}/train.csv')
-            # plot_single_box_plot_series(df.to_dict('records'), title='Dados de Treinamento')
+            df = pd.read_csv(f'{caminho_dados}/{data_index}/train.csv')
             model = VAR(df)
             model_fitted = model.fit(maxlags=lags)
-            df_test = pd.read_csv(f'E:/mestrado/Pesquisa/Dados simulados/Dados/config 1/{data_index}/test.csv')
+            df_test = pd.read_csv(f'{caminho_dados}/{data_index}/test.csv')
 
             relative_errors = []
             entradas_teste = []
@@ -46,10 +46,7 @@ for data_index in indices_to_use:
                     series_forecasts.append({c: v for c, v in zip(df_test.columns, forecast)})
                     series_targets.append(df_test.iloc[i+steps_ahead+lags].to_dict())
                     # Calcular os erros relativos
-                    relative_errors.append(np.abs((df_test.values[i+steps_ahead+lags] - forecast) / (forecast + 0.0001)))
-            # plot_single_box_plot_series(entradas_teste, title='Entrada de teste')
-            # plot_multiple_box_plot_series([series_targets, series_forecasts])
-
+                    relative_errors.append(np.abs((df_test.values[i + steps_ahead + lags] - forecast) / (forecast + 0.0001)))
             # Calcular o MMRE
             mmre = np.mean(relative_errors)
             results_df.loc[results_df['Data_index'] == data_index, f'VAR_result ({steps_ahead} steps ahead)'] = mmre
