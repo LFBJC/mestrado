@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.keras import models, layers, Input, Model
 from tensorflow.keras.losses import Loss
 from tensorflow.python.ops.numpy_ops import np_config
+from scipy.integrate import solve_ivp
 from keras import backend as K
 from typing import Literal
 import math
@@ -75,6 +76,56 @@ def henom_map(n_samples: int = 10000, begin_value: float=None):
         out.append(1 - 1.4*(out[-1]**2) + 0.3*out[-2])
     return out
 
+
+def generate_stochastic_van_der_pol_series(
+        n_samples: int = 10000, begin_value: float=None, begin_speed: float=None,
+        mu_mean: float=None, mu_variation: float=None, sigma_mean: float=None, sigma_variation: float=None
+):
+    if begin_value is None:
+        begin_value = np.random.uniform(-10, 10)
+    if begin_speed is None:
+        begin_speed = np.random.uniform(-10, 10)
+    if mu_mean is None:
+        mu_mean = np.random.uniform(0, 3)
+    if mu_variation is None:
+        mu_variation = np.random.rand()
+    if sigma_mean is None:
+        sigma_mean = np.random.rand()
+    if sigma_variation is None:
+        sigma_variation = np.random.rand()
+    x = [begin_value]
+    v = [begin_speed]
+    dt = 0.01
+    for i in range(n_samples):
+        # print(f"time: {i}")
+        mu = mu_mean + mu_variation * np.sin(2 * np.pi * i * dt)
+        sigma = sigma_mean + sigma_variation * np.cos(2 * np.pi * i * dt)
+        dx, dv = van_der_pol(x[i - 1], v[i - 1], mu, sigma, dt, x[i])
+        x.append(x[i - 1] + dx * dt)
+        v.append(v[i - 1] + dv * dt)
+        # Verificar limites das variáveis
+        if abs(x[i - 1] + dx * dt) < 1e10 and abs(v[i - 1] + dv * dt) < 1e10:
+            x.append(x[i - 1] + dx * dt)
+            v.append(v[i - 1] + dv * dt)
+        else:
+            print(f"Estouro de memória em i = {i}. Abortando simulação.")
+            print(f"μ_mean = {mu_mean}, σ_mean = {sigma_mean}")
+            print(f"μ_var = {mu_variation}, σ_var = {sigma_variation}")
+            raise Exception()
+    return x, v[-1], {
+        'mu_mean': mu_mean,
+        'mu_variation': mu_variation,
+        'sigma_mean': sigma_mean,
+        'sigma_variation': sigma_variation
+    }
+
+
+def van_der_pol(x, v, mu, sigma, dt, xi):
+    dxdt = v
+    dvdt = mu * (1 - x**2) * v - x + sigma * xi
+    return dxdt, dvdt
+
+
 def aggregate_data_by_chunks(data, chunk_size: int = 10):
     box_plots = []
     for chunk in range(int(np.ceil(len(data)/chunk_size))):
@@ -125,22 +176,37 @@ def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1
     data = list(map(lambda x: list(x.values()), data))
     images = []
     all_targets = []
-    inverse_normalizations = []
-    normalizations = []
     for i in range(len(data)-1-steps_ahead-input_win_size):
         image = np.array(data[i:input_win_size+i])
         image = np.expand_dims(image, len(image.shape))
-        inverse_normalization = lambda x: (np.max(image) - np.min(image))*x + np.min(image)
-        normalization = lambda x: (x - np.min(image))/(np.max(image) - np.min(image))
-        normalized_image = normalization(image)
-        normalizations.append(normalization)
         targets = np.array([data[input_win_size + i + s] for s in range(steps_ahead)])
-        images.append(normalized_image)
+        images.append(image)
         all_targets.append(targets)
-        inverse_normalizations.append(inverse_normalization)
-        assert (all([b_plot[0] < b_plot[1] < b_plot[2] < b_plot[3] < b_plot[4] for targets in all_targets for b_plot in
-                     targets]))
-    return np.array(images), np.array(all_targets), inverse_normalizations, normalizations
+    return np.array(images), np.array(all_targets)
+
+
+def normalize_data(inputs, targets, min_, max_):
+    inputs_ret =  inputs.copy()
+    targets_ret = targets.copy()
+    inputs_ret = (inputs_ret- min_)/(max_ - min_)
+    targets_ret = (targets_ret - min_)/(max_ - min_)
+    return inputs_ret, targets_ret
+
+def to_ranges(x, axis=2):
+    ret = x.copy()
+    ret[tuple([slice(None)]*(axis) + [slice(1,None)])] -= ret[tuple([slice(None)]*(axis) + [slice(None, -1)])]
+    return ret
+
+def from_ranges(x, axis=2):
+    ret = x.copy()
+    for i in range(1, ret.shape[axis]):
+        ret[tuple([slice(None)]*(axis) + [i])] += ret[tuple([slice(None)]*(axis) + [i -1])]
+    return ret
+
+def denormalize_data(inputs, min_, max_):
+    ret = inputs.copy()
+    ret = (ret)*(max_ - min_) + min_
+    return ret
 
 
 def create_model(
