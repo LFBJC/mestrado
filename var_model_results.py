@@ -4,9 +4,10 @@ import numpy as np
 from statsmodels.tsa.api import VAR
 from utils import plot_single_box_plot_series, plot_multiple_box_plot_series
 
-caminho_dados = 'E:/mestrado/Pesquisa/Dados simulados/Dados/config 4'
-caminho_de_saida = "E:/mestrado/Pesquisa/Dados simulados/resultados VAR conf 4.csv"
-num_sets = 143
+config = 5
+caminho_dados = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}'
+caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/resultados VAR conf {config}.csv"
+num_sets = 1000
 lags = 1
 steps_ahead_list = [1, 5, 20]
 if os.path.exists(caminho_de_saida):

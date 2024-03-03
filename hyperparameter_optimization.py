@@ -185,7 +185,7 @@ def objective_lstm(trial, study, data_set_index, steps_ahead, pasta_dados):
 
 
 
-config = 4
+config = 5
 pasta_dados = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}'
 steps_ahead_list = [1, 5, 20]
 n_trials = 100

@@ -71,7 +71,7 @@ def logistic_map(n_samples: int = 10000, begin_value: float=None):
 def henom_map(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
         begin_value = np.random.rand() # valor aleatório entre 0 e 1
-    out = [begin_value]
+    out = [begin_value, 1 - 1.4*begin_value**2]
     for step in range(n_samples-1):
         out.append(1 - 1.4*(out[-1]**2) + 0.3*out[-2])
     return out
@@ -81,10 +81,21 @@ def generate_stochastic_van_der_pol_series(
         n_samples: int = 10000, begin_value: float=None, begin_speed: float=None,
         mu_mean: float=None, mu_variation: float=None, sigma_mean: float=None, sigma_variation: float=None
 ):
+    """
+
+    :param n_samples:
+    :param begin_value:
+    :param begin_speed:
+    :param mu_mean:
+    :param mu_variation:
+    :param sigma_mean:
+    :param sigma_variation:
+    :return: a tuple containing the series and keyword arguments for creating a new series from where this series stopped
+    """
     if begin_value is None:
-        begin_value = np.random.uniform(-10, 10)
+        begin_value = np.random.uniform(-5, 5)
     if begin_speed is None:
-        begin_speed = np.random.uniform(-10, 10)
+        begin_speed = np.random.uniform(-5, 5)
     if mu_mean is None:
         mu_mean = np.random.uniform(0, 3)
     if mu_variation is None:
@@ -95,6 +106,11 @@ def generate_stochastic_van_der_pol_series(
         sigma_variation = np.random.rand()
     x = [begin_value]
     v = [begin_speed]
+    print("Condições iniciais:")
+    print(f"x = {x[0]}, v={v[0]}")
+    print("Outras informações:")
+    print(f"μ_mean = {mu_mean}, σ_mean = {sigma_mean}")
+    print(f"μ_var = {mu_variation}, σ_var = {sigma_variation}")
     dt = 0.01
     for i in range(n_samples):
         # print(f"time: {i}")
@@ -109,10 +125,9 @@ def generate_stochastic_van_der_pol_series(
             v.append(v[i - 1] + dv * dt)
         else:
             print(f"Estouro de memória em i = {i}. Abortando simulação.")
-            print(f"μ_mean = {mu_mean}, σ_mean = {sigma_mean}")
-            print(f"μ_var = {mu_variation}, σ_var = {sigma_variation}")
             raise Exception()
-    return x, v[-1], {
+    return x, {
+        'begin_speed': v[-1],
         'mu_mean': mu_mean,
         'mu_variation': mu_variation,
         'sigma_mean': sigma_mean,
