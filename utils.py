@@ -112,13 +112,13 @@ def generate_stochastic_van_der_pol_series(
     print(f"μ_mean = {mu_mean}, σ_mean = {sigma_mean}")
     print(f"μ_var = {mu_variation}, σ_var = {sigma_variation}")
     dt = 0.01
-    for i in range(n_samples):
+    for i in range(n_samples - 1):
         # print(f"time: {i}")
         mu = mu_mean + mu_variation * np.sin(2 * np.pi * i * dt)
         sigma = sigma_mean + sigma_variation * np.cos(2 * np.pi * i * dt)
         dx, dv = van_der_pol(x[i - 1], v[i - 1], mu, sigma, dt, x[i])
-        x.append(x[i - 1] + dx * dt)
-        v.append(v[i - 1] + dv * dt)
+        # x.append(x[i - 1] + dx * dt)
+        # v.append(v[i - 1] + dv * dt)
         # Verificar limites das variáveis
         if abs(x[i - 1] + dx * dt) < 1e10 and abs(v[i - 1] + dv * dt) < 1e10:
             x.append(x[i - 1] + dx * dt)
@@ -126,6 +126,11 @@ def generate_stochastic_van_der_pol_series(
         else:
             print(f"Estouro de memória em i = {i}. Abortando simulação.")
             raise Exception()
+    if len(x) != n_samples:
+        print("ERROR")
+        print(len(x))
+        print(n_samples)
+        raise Exception()
     return x, {
         'begin_speed': v[-1],
         'mu_mean': mu_mean,
@@ -188,7 +193,10 @@ def plot_multiple_box_plot_series(box_plot_series, save_path='', show=True):
 def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1):
     if steps_ahead <= 0:
         raise ValueError("Can't predict negative steps ahead")
-    data = list(map(lambda x: list(x.values()), data))
+    if isinstance(data[0], dict):
+        data = list(map(lambda x: list(x.values()), data))
+    else:
+        data = [[x] for x in data]
     images = []
     all_targets = []
     for i in range(len(data)-1-steps_ahead-input_win_size):
@@ -241,10 +249,15 @@ def create_model(
     conv_2 = layers.Conv2D(filters_conv_2, kernel_size_conv_2, activation=activation_conv_2)(pooling_1)
     flatten = layers.Flatten()(conv_2)
     hidden_dense = layers.Dense(dense_neurons, activation=dense_activation)(flatten)
-    out_min = layers.Dense(1)(hidden_dense)
-    out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
-    out = layers.concatenate([out_min, out_ranges])
-    return Model(inputs=[input], outputs=[out])
+    if input_shape[1] - 1 != 0:
+        out_min = layers.Dense(1)(hidden_dense)
+        out_ranges = layers.Dense(input_shape[1]-1, activation='relu')(hidden_dense)
+        out = layers.concatenate([out_min, out_ranges])
+    else:
+        out = layers.Dense(1)(hidden_dense)
+    model = Model(inputs=[input], outputs=[out])
+    # model.summary()
+    return model
 
 
 def create_lstm_model(
@@ -252,6 +265,7 @@ def create_lstm_model(
     dropouts: List[float], recurrent_dropouts: List[float]
 ):
     input_ = Input(shape=input_shape)
+    lstm_out = None
     for i, (num_units, activation, recurrent_activation, dropout, recurrent_dropout) in enumerate(zip(
             num_units_by_layer, activations, recurrent_activations, dropouts, recurrent_dropouts
     )):
@@ -265,11 +279,15 @@ def create_lstm_model(
                 num_units, activation=activation, recurrent_activation=recurrent_activation, dropout=dropout,
                 recurrent_dropout=recurrent_dropout, return_sequences=(i < len(dropouts) - 1)
             )(lstm_out)
-    out_min = layers.Dense(1)(lstm_out)
-    out_ranges = layers.Dense(input_shape[1] - 1, activation='relu')(lstm_out)
-    out = layers.concatenate([out_min, out_ranges])
-    model = Model(inputs=[input_], outputs=[out])
-    return model
+    if lstm_out is not None:
+        if input_shape[1] - 1 != 0:
+            out_min = layers.Dense(1)(lstm_out)
+            out_ranges = layers.Dense(input_shape[1] - 1, activation='relu')(lstm_out)
+            out = layers.concatenate([out_min, out_ranges])
+        else:
+            out = layers.Dense(1)(lstm_out)
+        model = Model(inputs=[input_], outputs=[out])
+        return model
 
 
 def MMRE(y_true, y_pred):
