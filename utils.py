@@ -235,7 +235,7 @@ def denormalize_data(inputs, min_, max_):
 def create_model(
     input_shape=(20, 5, 1), filters_conv_1=32, kernel_size_conv_1=(4, 1), activation_conv_1='relu',
     pool_size_1=(2, 2), pool_type_1: Literal["max", "average"] = "max",
-    filters_conv_2=16, kernel_size_conv_2=(1, 2), activation_conv_2='relu',
+    # filters_conv_2=16, kernel_size_conv_2=(1, 2), activation_conv_2='relu',
     dense_neurons=16, dense_activation='relu'
 ):
     input = Input(shape=input_shape)
@@ -246,8 +246,9 @@ def create_model(
         pooling_1 = layers.MaxPooling2D(pool_size_1)(conv_1)
     else:
         pooling_1 = layers.AveragePooling2D(pool_size_1)(conv_1)
-    conv_2 = layers.Conv2D(filters_conv_2, kernel_size_conv_2, activation=activation_conv_2)(pooling_1)
-    flatten = layers.Flatten()(conv_2)
+    # conv_2 = layers.Conv2D(filters_conv_2, kernel_size_conv_2, activation=activation_conv_2)(pooling_1)
+    # flatten = layers.Flatten()(conv_2)
+    flatten = layers.Flatten()(pooling_1)
     hidden_dense = layers.Dense(dense_neurons, activation=dense_activation)(flatten)
     if input_shape[1] - 1 != 0:
         out_min = layers.Dense(1)(hidden_dense)

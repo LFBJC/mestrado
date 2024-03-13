@@ -24,23 +24,25 @@ def objective_cnn(trial, study, train_data, val_data, saida):
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
     pool_size_1 = trial.suggest_categorical('pool_size_1', [(2, 1), (3, 1)])
     pool_type_1 = trial.suggest_categorical('pool_type_1', ['max', 'average'])
-    filters_conv_2 = trial.suggest_int('filters_conv_2', 6, filters_conv_1 // 2)
-    w2 = (win_size - kernel_size_conv_1[0]) + 1
-    w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
-    kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', available_kernel_sizes)
-    print(f'w3: {w3}\nkernel conv 2: {kernel_size_conv_2}')
-    w4 = (w3 - kernel_size_conv_2[0]) + 1
-    h4 = (7 - kernel_size_conv_1[1] - pool_size_1[1])//pool_size_1[1] - kernel_size_conv_2[1] + 1
-    activation_conv_2 = trial.suggest_categorical('activation_conv_2',
-                                                  ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
-    dense_neurons = trial.suggest_int('dense_neurons', 5, w4*h4*filters_conv_2 - 1)
+    # filters_conv_2 = trial.suggest_int('filters_conv_2', 6, filters_conv_1 // 2)
+    w2 = (win_size - kernel_size_conv_1[0]) - pool_size_1[0] + 2
+    h2 = (5 - kernel_size_conv_1[0]) - pool_size_1[1] + 2
+    # w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
+    # kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', available_kernel_sizes)
+    # print(f'w3: {w3}\nkernel conv 2: {kernel_size_conv_2}')
+    # w4 = (w3 - kernel_size_conv_2[0]) + 1
+    # h4 = (7 - kernel_size_conv_1[1] - pool_size_1[1])//pool_size_1[1] - kernel_size_conv_2[1] + 1
+    # activation_conv_2 = trial.suggest_categorical('activation_conv_2',
+    #                                               ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
+    # dense_neurons = trial.suggest_int('dense_neurons', 5, w4*h4*filters_conv_2 - 1)
+    dense_neurons = trial.suggest_int('dense_neurons', 5, w2 * h2 * filters_conv_1 - 1)
     model = create_model(
         input_shape=(win_size, out_size, 1),
         filters_conv_1=filters_conv_1, kernel_size_conv_1=kernel_size_conv_1,
         activation_conv_1=activation_conv_1,
         pool_size_1=pool_size_1, pool_type_1=pool_type_1,
-        filters_conv_2=filters_conv_2, kernel_size_conv_2=kernel_size_conv_2,
-        activation_conv_2=activation_conv_2,
+        # filters_conv_2=filters_conv_2, kernel_size_conv_2=kernel_size_conv_2,
+        # activation_conv_2=activation_conv_2,
         dense_neurons=dense_neurons, dense_activation='sigmoid'
     )
     N_EPOCHS = 10000000
@@ -118,10 +120,10 @@ def objective_cnn(trial, study, train_data, val_data, saida):
         model.save(f'{saida}/best_model.h5')
         pickle.dump(history.history, open(f'{saida}/best_model_history.pkl', 'wb'))
     opt_hist_df = pd.DataFrame.from_records([trial.params])
-    opt_hist_df['w2'] = w2
-    opt_hist_df['w3'] = w3
-    opt_hist_df['w4'] = w4
-    opt_hist_df['h4'] = h4
+    # opt_hist_df['w2'] = w2
+    # opt_hist_df['w3'] = w3
+    # opt_hist_df['w4'] = w4
+    # opt_hist_df['h4'] = h4
     opt_hist_df['score'] = error
     hist_path = f'{saida}/opt_hist.csv'
     append_condition = os.path.exists(hist_path)
@@ -141,7 +143,7 @@ def objective_lstm(trial, study, train_data, val_data, saida):
         X, Y = to_ranges(X, axis=1), to_ranges(Y, axis=1)
     # plot_single_box_plot_series(train_data)
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
-    num_layers = trial.suggest_int("Número de camadas", 1, 5)
+    num_layers = trial.suggest_int("Número de camadas", 1, 2)
     units=[]
     activations = []
     recurrent_activations = []

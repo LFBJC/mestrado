@@ -44,16 +44,20 @@ if __name__ == '__main__':
     aggregation_type = "boxplot" # only relevant for ARIMA
     config = 4
     # data_index = 2
-    partition_size = 100 # 360, 250, 100 # o 250 (mediana) deu falha na 4s1p250 LU decomposition error
+    partition_size = 360 # 360, 250, 100 # o 250 (mediana) deu falha na 4s1p250 LU decomposition error
     steps_ahead_list = [1, 5, 20]
-    for data_index in range(10):
+    for data_index in range(1, 10):
+        if data_index == 1:
+            local_steps_ahead_list=[5,20]
+        else:
+            local_steps_ahead_list = steps_ahead_list
         caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
         caminho_dados = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}/{data_index}/partition size {partition_size}/'
         train_path = f'{caminho_dados}/train.csv'
         train_df = pd.read_csv(train_path)
         train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
-        for steps_ahead in steps_ahead_list:
+        for steps_ahead in local_steps_ahead_list:
             best_error = np.inf
             best_params = None
             if model_name == "VAR":
@@ -69,19 +73,20 @@ if __name__ == '__main__':
                         salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
             else:
                 def arima_para_coluna(coluna, order):
-                    model = ARIMA(train_df[coluna].values, order=order)
-                    p, d, q = order
-                    model.initialize_approximate_diffuse()  # (median) this line was added for partition 250 data_index 4 and greater and partition_size 360
-                    # in boxplot version this line applies to all cases
-                    model_fitted = model.fit()
-                    val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
-                    relative_errors = []
-                    for i, row in val_data.iterrows():
-                        if i > p and i + 1 + steps_ahead < val_data.shape[0]:
-                            input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
-                            forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
-                            relative_errors.append(np.abs((target - forecast) / (forecast + 0.0001)))
-                    return np.mean(relative_errors)
+                    try:
+                        model = ARIMA(train_df[coluna].values, order=order)
+                        p, d, q = order
+                        model_fitted = model.fit()
+                        val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
+                        relative_errors = []
+                        for i, row in val_data.iterrows():
+                            if i > p and i + 1 + steps_ahead < val_data.shape[0]:
+                                input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
+                                forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
+                                relative_errors.append(np.abs((target - forecast) / (forecast + 0.0001)))
+                        return np.mean(relative_errors)
+                    except:
+                        return np.inf
 
                 def objective(trial, study):
                     p = trial.suggest_int('p', 1, 10)
