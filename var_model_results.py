@@ -1,5 +1,5 @@
 import os
-
+import pickle
 import optuna
 import pandas as pd
 import numpy as np
@@ -44,14 +44,15 @@ if __name__ == '__main__':
     aggregation_type = "boxplot" # only relevant for ARIMA
     config = 4
     # data_index = 2
-    partition_size = 360 # 360, 250, 100 # o 250 (mediana) deu falha na 4s1p250 LU decomposition error
+    partition_size = 100 # 360, 250, 100
     steps_ahead_list = [1, 5, 20]
     for data_index in range(1, 10):
-        if data_index == 1:
-            local_steps_ahead_list=[5,20]
-        else:
-            local_steps_ahead_list = steps_ahead_list
+        # if data_index == 1:
+        #     local_steps_ahead_list=[5,20]
+        # else:
+        local_steps_ahead_list = steps_ahead_list
         caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
+        pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
         caminho_dados = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}/{data_index}/partition size {partition_size}/'
         train_path = f'{caminho_dados}/train.csv'
@@ -70,6 +71,7 @@ if __name__ == '__main__':
                         print(resultado, best_error)
                         best_error = resultado
                         best_params = lags
+                        pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}.pkl", 'wb'))
                         salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
             else:
                 def arima_para_coluna(coluna, order):
@@ -78,28 +80,30 @@ if __name__ == '__main__':
                         p, d, q = order
                         model_fitted = model.fit()
                         val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
-                        relative_errors = []
+                        relative_errors_val = []
                         for i, row in val_data.iterrows():
                             if i > p and i + 1 + steps_ahead < val_data.shape[0]:
                                 input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
                                 forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
-                                relative_errors.append(np.abs((target - forecast) / (forecast + 0.0001)))
-                        return np.mean(relative_errors)
+                                relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
+                        return model_fitted, np.mean(relative_errors_val)
                     except:
-                        return np.inf
+                        return None, np.inf
 
                 def objective(trial, study):
                     p = trial.suggest_int('p', 1, 10)
-                    d = trial.suggest_int('d', 0, 8)
+                    d = trial.suggest_int('d', 0, 2)
                     q = trial.suggest_int('q', 0, 8)
                     order = (p, d, q)
+                    cols_to_models = {}
                     if aggregation_type == "median":
-                        resultado = arima_para_coluna('med', order)
+                        cols_to_models["med"], resultado = arima_para_coluna('med', order)
                     else:
                         resultado = 0
                         num_cols = len(train_df.columns)
                         for col in train_df.columns:
-                            resultado += arima_para_coluna(col, order)/num_cols
+                            cols_to_models[col], resultado_col = arima_para_coluna(col, order)
+                            resultado += resultado_col/num_cols
                     try:
                         best_value = study.best_value
                     except ValueError:
@@ -107,6 +111,9 @@ if __name__ == '__main__':
                     if resultado < best_value:
                         best_error = resultado
                         best_params = (p, d, q)
+                        for col, model in cols_to_models.items():
+                            os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
+                            pickle.dump(model, open(f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl", 'wb'))
                         salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                     return resultado
 
