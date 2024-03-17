@@ -4,12 +4,12 @@ import optuna
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import VAR, ARIMA
-from utils import plot_single_box_plot_series, plot_multiple_box_plot_series
+from utils import plot_single_box_plot_series, plot_multiple_box_plot_series, cria_ou_atualiza_arquivo_no_drive
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
-id_pasta_dados_simulados = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
+id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
 caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -45,7 +45,7 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
     # print(caminho_de_saida)
     results_df.to_csv(caminho_de_saida, index=False)
     if drive is not None:
-        file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_dados_simulados}]})
+        file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_arima}]})
         file.SetContentFile(caminho_de_saida)  # Define o conteúdo do arquivo
         file.Upload()
 
@@ -56,11 +56,11 @@ if __name__ == '__main__':
     # data_index = 2
     partition_size = 100 # 360, 250, 100
     steps_ahead_list = [1, 5, 20]
-    for data_index in range(1, 10):
-        if data_index == 1:
-            local_steps_ahead_list=[5,20]
-        else:
-            local_steps_ahead_list = steps_ahead_list
+    for data_index in range(2, 10):
+        # if data_index == 1:
+        #     local_steps_ahead_list=[5,20]
+        # else:
+        local_steps_ahead_list = steps_ahead_list
         caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
         pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
@@ -132,10 +132,11 @@ if __name__ == '__main__':
                         for col, model in cols_to_models.items():
                             os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
                             caminho_pickle_modelo = f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
-                            file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_dados_simulados}]})
                             pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                            file.SetContentFile(caminho_pickle_modelo)  # Define o conteúdo do arquivo
-                            file.Upload()
+                            caminho_modelo_drive = f'{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
+                            cria_ou_atualiza_arquivo_no_drive(
+                                drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
+                            )
                         salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                     return resultado
 
