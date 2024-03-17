@@ -45,9 +45,9 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
     # print(caminho_de_saida)
     results_df.to_csv(caminho_de_saida, index=False)
     if drive is not None:
-        file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_arima}]})
-        file.SetContentFile(caminho_de_saida)  # Define o conteúdo do arquivo
-        file.Upload()
+        cria_ou_atualiza_arquivo_no_drive(
+            drive, id_pasta_arima, caminho_de_saida.split('/')[-1], caminho_de_saida
+        )
 
 if __name__ == '__main__':
     model_name = "ARIMA" # "VAR" #
