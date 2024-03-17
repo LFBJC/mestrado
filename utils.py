@@ -85,6 +85,37 @@ def cria_caminho_no_drive(drive, id_pasta_raiz, caminho):
         return current_folder_id
 
 
+def retorna_arquivo_se_existe(drive, id_pasta_raiz, caminho):
+    caminho = caminho.replace('\\', '/')
+    if caminho.endswith('/'):
+        caminho = caminho[:-1]
+    file_list = drive.ListFile({'q': f"'{id_pasta_raiz}' in parents and trashed=false"}).GetList()
+    for nome_pasta_atual in caminho.split('/')[:-1]:
+        file_exists = False
+        current_folder_id = None
+        for file in file_list:
+            if file['title'] == nome_pasta_atual:
+                file_exists = True
+                current_folder_id = file['id']
+                break
+        if file_exists:
+            file_list = drive.ListFile({'q': f"'{current_folder_id}' in parents and trashed=false"}).GetList()
+        else:
+            return None
+    nome_arquivo = caminho.split('/')[-1]
+    file_exists = False
+    ret = None
+    for file in file_list:
+        if file['title'] == nome_arquivo:
+            file_exists = True
+            ret = file
+            break
+    if file_exists:
+        return ret
+    else:
+        return None
+
+
 class MMRE_Loss(Loss):
     def __init__(self, inverse_normalizations):
         self.inverse_normalizations = inverse_normalizations
