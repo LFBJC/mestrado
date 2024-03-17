@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_targets_from_data_series,\
     plot_multiple_box_plot_series, plot_single_box_plot_series, normalize_data, to_ranges, from_ranges, \
-    denormalize_data, cria_ou_atualiza_arquivo_no_drive
+    denormalize_data, cria_ou_atualiza_arquivo_no_drive, retorna_arquivo_se_existe
 from tqdm import tqdm
 import tensorflow as tf
 from pydrive2.auth import GoogleAuth
