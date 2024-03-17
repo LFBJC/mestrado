@@ -10,7 +10,7 @@ from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados"
+caminho_dados_simulados_local = "~/mestrado/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
