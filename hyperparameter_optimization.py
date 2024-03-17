@@ -227,6 +227,13 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         error = tf.keras.backend.eval(
             MMRE(denormalize_data(Y_test, min_, max_), denormalize_data(T, min_, max_))
         )
+    gauth = GoogleAuth()
+    scope = ['https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+    gauth.credentials = creds
+
+    # Criação do objeto drive
+    drive = GoogleDrive(gauth)
     try:
         if error < study.best_value:
             caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
@@ -271,18 +278,26 @@ for config in configs:
     for partition_size in [100]: # 500, 360, 250, 100
         for data_set_index in range(10):
             caminho_dados_drive = f'Dados/config {config}/{data_set_index}/partition size {partition_size}'
-            saida_drive = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
-            caminho_de_saida = f"{caminho_dados_simulados_local}/{saida_drive}"
+            saida_complemento = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
+            caminho_de_saida = f"{caminho_dados_simulados_local}/{saida_complemento}"
             objective = objective_by_model_type[model_type]
             for steps_ahead in steps_ahead_list:
                 # plot_single_box_plot_series(train_data)
+                saida_drive = f"{saida_complemento}/{steps_ahead} steps ahead/"
                 caminho_completo_saida = f'{caminho_de_saida}/{steps_ahead} steps ahead/'
                 os.makedirs(caminho_completo_saida, exist_ok=True)
                 objective_kwargs = {
                     'pasta_base_saida': caminho_dados_simulados_local,
                     'caminho_interno': f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}/{steps_ahead} steps ahead/"
                 }
-                train_and_val_file = retorna_arquivo_se_existe(f'{caminho_dados_drive}/train.csv')
+                gauth = GoogleAuth()
+                scope = ['https://www.googleapis.com/auth/drive']
+                creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                gauth.credentials = creds
+
+                # Criação do objeto drive
+                drive = GoogleDrive(gauth)
+                train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
                 if train_and_val_file is not None:
                     pasta_dados = f"{caminho_dados_simulados_local}/{caminho_dados_drive}"
                     os.makedirs(pasta_dados, exist_ok=True)
@@ -300,7 +315,7 @@ for config in configs:
                         study_name=f'hyperparameter_opt {data_set_index}, {model_type}, {steps_ahead} steps ahead, partition size={partition_size}'
                     )
                     objective_kwargs['study'] = study
-                    opt_hist_file_drive =  retorna_arquivo_se_existe(f'{saida_drive}/opt_hist.csv')
+                    opt_hist_file_drive =  retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
                     if opt_hist_file_drive is None:
                         study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
                     else:
