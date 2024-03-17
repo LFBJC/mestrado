@@ -15,7 +15,7 @@ from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
-caminho_dados_simulados_local = "~/mestrado/Dados simulados"
+caminho_dados_simulados_local = "~/arquivos_mestrado/Dados simulados"
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
