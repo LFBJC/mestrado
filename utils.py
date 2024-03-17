@@ -16,10 +16,10 @@ from tqdm import tqdm
 from functools import partial
 # from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
-import rpy2.robjects as robjects
-from rpy2.robjects import conversion, default_converter
-from rpy2.robjects.packages import importr
-utils = importr('utils')
+# import rpy2.robjects as robjects
+# from rpy2.robjects import conversion, default_converter
+# from rpy2.robjects.packages import importr
+# utils = importr('utils')
 np_config.enable_numpy_behavior()
 
 
@@ -357,184 +357,184 @@ def MMRE(y_true, y_pred):
     return K.mean(K.abs((y_true-y_pred)/(y_pred + K.epsilon())))
 
 
-def partitioning_and_prototype_selection(series, k_janelas=30, alpha=0.05, k_vizinhos=3):
-    # this R code is a copy of the code from Dailys
-    instalacoes = """
-        if (!require('tseries')) install.packages('tseries')
-        if (!require('FNN')) install.packages('FNN')
-        if (!require('lmtest')) install.packages('lmtest')
-        if (!require('fpp')) install.packages('fpp')
-        if (!require('xts')) install.packages('xts')
-    """
-    importacoes_de_bibliotecas_e_def_de_funcoes = '''
-        library(tseries)
-        library(FNN)
-        library(lmtest)
-        library(fpp)
-        library(xts)
-        # Função para calcular quantidade de janelas (serie, tamanho da janela, percentual de interseção)
-# retorna tamanho da serie, tamanho das janelas, quantidades de dados na interseção, quantidade de janelas) 
-kJanelas <- function(x, k, pint){
-  n <- length(x)
-  j <- round(((n - (k * pint))/(k * (1 - pint))))
-  qint <- (k * (pint*100))/100
-  val <- c(n, j, qint, k)
-  return(val) 
-}
-
-#Particionar a serie em janelas
-particionar <- function(y){
-  amostras <- list()
-  contador = 1
-  contador1 = qj[4]
-  temp = qj[2] - 1
-  for (i in 1:qj[2]) 
-  {
-    if(temp >= i){
-      nam <- paste("amostra",i, sep="_")
-      nome <- assign(nam, y[contador: contador1])
-      contador = contador + qj[4] - qj[3]
-      contador1 = contador + qj[4] - 1
-    }
-    else {
-      nam <- paste("amostra",i, sep="_")
-      temp1 = qj[1] - contador1
-      contador1 = contador1 + temp1
-      nome <- assign(nam, y[contador: contador1])
-    }
-    amostras[[i]] <- nome
-  }
-  return(amostras)
-}  
-
-#Função para Seleção dos k-vizinhos (serie, quantidade de vizinhos)
-k_vizinhos <- function(x, k){
-  if (class(x) == "list"){
-    vizinhos <- list()
-    for (s in 1:qj[2]) {
-      v <- get.knn(x[[s]], k = k)
-      vizinhos[[s]] <- v$nn.index
-    }
-  }
-  else{
-    v <- get.knn(x, k = k)
-    vizinhos <- v$nn.index
-  }
-  return(vizinhos)
-}
-
-#Função para calcular IM removendo xi (variaveis x e y)
-IM <- function(xx, yy, y){
-  if(class(yy) == "list"){
-    IM_normalizada <- list()
-    for (j in 1:qj[2]) {
-      n = length(yy[[j]])
-      temporal <- c()
-      for (i in 1:n) 
-      {
-        y <- yy[[j]]
-        X <- xx[[j]]
-        X <- X[-i]
-        temporal[i] <- mutinfo(X, y, k = 1, direct=TRUE)
-      } 
-    #Normalizar dados [0, 1]
-      IM_normalizada[[j]] = (temporal-min(temporal))/(max(temporal))-(min(temporal))
-    }
-  }
-  else{
-      n = length(yy)
-      temporal <- c()
-      for (i in 1:n) 
-      {
-        y <- y
-        X <- x
-        X <- X[-i]
-        temporal[i] <- mutinfo(X, y, k = 1, direct=TRUE)
-      } 
-      #Normalizar dados [0, 1]
-      IM_normalizada = (temporal-min(temporal))/(max(temporal))-(min(temporal))
-    }
-  return(IM_normalizada)
-}
-
-#Função para Seleção dos protótipos(serie, vizinhos mas proximos, IM normalizada, alpha)
-prototipos <- function(serie, vizinhos, mutua, a, qj){
-  c = 1
-  if(class(serie) == "list"){
-    prototipo <- list()
-    serie_de_prototipos_y <- list()
-      for (k in 1:qj[2]) 
-      {
-        n = length(serie[[k]])
-        temp2 <- vector(mode = "numeric")
-        for (l in 1:n) {
-          cont = 0
-          temp1 <- vizinhos [[k]][l]
-          cdif <- mutua[[k]][l] - mutua[[k]][temp1]
-          if (cdif > a){
-            cont <- cont + 1
-          }
-          if (cont < c){
-            temp2[l] <- l
-          }
-        }
-        prototipo [[k]] <- temp2
-        temp3 <- na.omit(prototipo[[k]])
-        pos <- length(temp3)
-        num <- vector(mode = "numeric")
-        for(j in 1:pos)
-        {
-          p <- temp3[j]
-          num [j] <- serie [[k]][p]
-          serie_de_prototipos_y[[k]] <- num
-        }
-      }
-    }
-    else {
-        n = length(serie)
-        temp2 <- vector(mode = "numeric")
-        for (l in 1:n) {
-          cont = 0
-          temp1 <- vizinhos [l,]
-          cdif <- mutua[l] - mutua[temp1]
-          if (cdif > a){
-            cont <- cont + 1
-          }
-          if (cont < c){
-            temp2[l] <- l
-          }
-        }
-        prototipo <- temp2
-        temp3 <- na.omit(prototipo)
-        pos <- length(temp3)
-        num <- vector(mode = "numeric")
-        for(j in 1:pos)
-        {
-          p <- temp3[j]
-          num [j] <- serie [p]
-          serie_de_prototipos_y <- num
-        }
-      }
-    return(serie_de_prototipos_y)
-    }
-    '''
-    def_series_no_r = f'' \
-                      f'y <- c{tuple(series)}\n' \
-                      f'x <- lag(y)\n' \
-                      f'qj <- kJanelas(y, {k_janelas}, 0.4)\n' \
-                      f'amostras_y <- particionar (y)\n' \
-                      f'amostras_x <- particionar(x)'
-    execucao_do_codigo_em_si = f'''
-        vizinhos <- k_vizinhos(amostras_x,{k_vizinhos})
-
-        Infor_mutua <- IM(amostras_x, amostras_y, y)
-
-        serie_prototipos <- prototipos(amostras_y, vizinhos, Infor_mutua, {alpha}, qj)
-        serie_prototipos
-    '''
-    result = robjects.r(instalacoes + importacoes_de_bibliotecas_e_def_de_funcoes + def_series_no_r + execucao_do_codigo_em_si)
-    result_py = [list(x) for x in result]
-    return result_py
+# def partitioning_and_prototype_selection(series, k_janelas=30, alpha=0.05, k_vizinhos=3):
+#     # this R code is a copy of the code from Dailys
+#     instalacoes = """
+#         if (!require('tseries')) install.packages('tseries')
+#         if (!require('FNN')) install.packages('FNN')
+#         if (!require('lmtest')) install.packages('lmtest')
+#         if (!require('fpp')) install.packages('fpp')
+#         if (!require('xts')) install.packages('xts')
+#     """
+#     importacoes_de_bibliotecas_e_def_de_funcoes = '''
+#         library(tseries)
+#         library(FNN)
+#         library(lmtest)
+#         library(fpp)
+#         library(xts)
+#         # Função para calcular quantidade de janelas (serie, tamanho da janela, percentual de interseção)
+# # retorna tamanho da serie, tamanho das janelas, quantidades de dados na interseção, quantidade de janelas)
+# kJanelas <- function(x, k, pint){
+#   n <- length(x)
+#   j <- round(((n - (k * pint))/(k * (1 - pint))))
+#   qint <- (k * (pint*100))/100
+#   val <- c(n, j, qint, k)
+#   return(val)
+# }
+#
+# #Particionar a serie em janelas
+# particionar <- function(y){
+#   amostras <- list()
+#   contador = 1
+#   contador1 = qj[4]
+#   temp = qj[2] - 1
+#   for (i in 1:qj[2])
+#   {
+#     if(temp >= i){
+#       nam <- paste("amostra",i, sep="_")
+#       nome <- assign(nam, y[contador: contador1])
+#       contador = contador + qj[4] - qj[3]
+#       contador1 = contador + qj[4] - 1
+#     }
+#     else {
+#       nam <- paste("amostra",i, sep="_")
+#       temp1 = qj[1] - contador1
+#       contador1 = contador1 + temp1
+#       nome <- assign(nam, y[contador: contador1])
+#     }
+#     amostras[[i]] <- nome
+#   }
+#   return(amostras)
+# }
+#
+# #Função para Seleção dos k-vizinhos (serie, quantidade de vizinhos)
+# k_vizinhos <- function(x, k){
+#   if (class(x) == "list"){
+#     vizinhos <- list()
+#     for (s in 1:qj[2]) {
+#       v <- get.knn(x[[s]], k = k)
+#       vizinhos[[s]] <- v$nn.index
+#     }
+#   }
+#   else{
+#     v <- get.knn(x, k = k)
+#     vizinhos <- v$nn.index
+#   }
+#   return(vizinhos)
+# }
+#
+# #Função para calcular IM removendo xi (variaveis x e y)
+# IM <- function(xx, yy, y){
+#   if(class(yy) == "list"){
+#     IM_normalizada <- list()
+#     for (j in 1:qj[2]) {
+#       n = length(yy[[j]])
+#       temporal <- c()
+#       for (i in 1:n)
+#       {
+#         y <- yy[[j]]
+#         X <- xx[[j]]
+#         X <- X[-i]
+#         temporal[i] <- mutinfo(X, y, k = 1, direct=TRUE)
+#       }
+#     #Normalizar dados [0, 1]
+#       IM_normalizada[[j]] = (temporal-min(temporal))/(max(temporal))-(min(temporal))
+#     }
+#   }
+#   else{
+#       n = length(yy)
+#       temporal <- c()
+#       for (i in 1:n)
+#       {
+#         y <- y
+#         X <- x
+#         X <- X[-i]
+#         temporal[i] <- mutinfo(X, y, k = 1, direct=TRUE)
+#       }
+#       #Normalizar dados [0, 1]
+#       IM_normalizada = (temporal-min(temporal))/(max(temporal))-(min(temporal))
+#     }
+#   return(IM_normalizada)
+# }
+#
+# #Função para Seleção dos protótipos(serie, vizinhos mas proximos, IM normalizada, alpha)
+# prototipos <- function(serie, vizinhos, mutua, a, qj){
+#   c = 1
+#   if(class(serie) == "list"){
+#     prototipo <- list()
+#     serie_de_prototipos_y <- list()
+#       for (k in 1:qj[2])
+#       {
+#         n = length(serie[[k]])
+#         temp2 <- vector(mode = "numeric")
+#         for (l in 1:n) {
+#           cont = 0
+#           temp1 <- vizinhos [[k]][l]
+#           cdif <- mutua[[k]][l] - mutua[[k]][temp1]
+#           if (cdif > a){
+#             cont <- cont + 1
+#           }
+#           if (cont < c){
+#             temp2[l] <- l
+#           }
+#         }
+#         prototipo [[k]] <- temp2
+#         temp3 <- na.omit(prototipo[[k]])
+#         pos <- length(temp3)
+#         num <- vector(mode = "numeric")
+#         for(j in 1:pos)
+#         {
+#           p <- temp3[j]
+#           num [j] <- serie [[k]][p]
+#           serie_de_prototipos_y[[k]] <- num
+#         }
+#       }
+#     }
+#     else {
+#         n = length(serie)
+#         temp2 <- vector(mode = "numeric")
+#         for (l in 1:n) {
+#           cont = 0
+#           temp1 <- vizinhos [l,]
+#           cdif <- mutua[l] - mutua[temp1]
+#           if (cdif > a){
+#             cont <- cont + 1
+#           }
+#           if (cont < c){
+#             temp2[l] <- l
+#           }
+#         }
+#         prototipo <- temp2
+#         temp3 <- na.omit(prototipo)
+#         pos <- length(temp3)
+#         num <- vector(mode = "numeric")
+#         for(j in 1:pos)
+#         {
+#           p <- temp3[j]
+#           num [j] <- serie [p]
+#           serie_de_prototipos_y <- num
+#         }
+#       }
+#     return(serie_de_prototipos_y)
+#     }
+#     '''
+#     def_series_no_r = f'' \
+#                       f'y <- c{tuple(series)}\n' \
+#                       f'x <- lag(y)\n' \
+#                       f'qj <- kJanelas(y, {k_janelas}, 0.4)\n' \
+#                       f'amostras_y <- particionar (y)\n' \
+#                       f'amostras_x <- particionar(x)'
+#     execucao_do_codigo_em_si = f'''
+#         vizinhos <- k_vizinhos(amostras_x,{k_vizinhos})
+#
+#         Infor_mutua <- IM(amostras_x, amostras_y, y)
+#
+#         serie_prototipos <- prototipos(amostras_y, vizinhos, Infor_mutua, {alpha}, qj)
+#         serie_prototipos
+#     '''
+#     result = robjects.r(instalacoes + importacoes_de_bibliotecas_e_def_de_funcoes + def_series_no_r + execucao_do_codigo_em_si)
+#     result_py = [list(x) for x in result]
+#     return result_py
 
 
 def partitioning_and_prototype_selection_v2(series, particoes, alpha=0.01, k=3, silent=True):
