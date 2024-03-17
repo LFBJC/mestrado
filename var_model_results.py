@@ -5,6 +5,12 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import VAR, ARIMA
 from utils import plot_single_box_plot_series, plot_multiple_box_plot_series
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+from oauth2client.service_account import ServiceAccountCredentials
+
+id_pasta_dados_simulados = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
+caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
@@ -19,7 +25,7 @@ def roda_var(model, val_data, lags, steps_ahead):
     return np.mean(relative_errors)
 
 
-def salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='params'):
+def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='params'):
     if os.path.exists(caminho_de_saida):
         results_df = pd.read_csv(caminho_de_saida)
     else:
@@ -38,6 +44,10 @@ def salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params, pa
         results_df.loc[cond, params_column_name] = [str(best_params)]
     # print(caminho_de_saida)
     results_df.to_csv(caminho_de_saida, index=False)
+    if drive is not None:
+        file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_dados_simulados}]})
+        file.SetContentFile(caminho_de_saida)  # Define o conteúdo do arquivo
+        file.Upload()
 
 if __name__ == '__main__':
     model_name = "ARIMA" # "VAR" #
@@ -47,14 +57,14 @@ if __name__ == '__main__':
     partition_size = 100 # 360, 250, 100
     steps_ahead_list = [1, 5, 20]
     for data_index in range(1, 10):
-        # if data_index == 1:
-        #     local_steps_ahead_list=[5,20]
-        # else:
-        local_steps_ahead_list = steps_ahead_list
-        caminho_de_saida = f"E:/mestrado/Pesquisa/Dados simulados/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
+        if data_index == 1:
+            local_steps_ahead_list=[5,20]
+        else:
+            local_steps_ahead_list = steps_ahead_list
+        caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
         pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
-        caminho_dados = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}/{data_index}/partition size {partition_size}/'
+        caminho_dados = f'{caminho_dados_simulados_local}/Dados/config {config}/{data_index}/partition size {partition_size}/'
         train_path = f'{caminho_dados}/train.csv'
         train_df = pd.read_csv(train_path)
         train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
@@ -72,7 +82,7 @@ if __name__ == '__main__':
                         best_error = resultado
                         best_params = lags
                         pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}.pkl", 'wb'))
-                        salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
+                        salva(None, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
             else:
                 def arima_para_coluna(coluna, order):
                     try:
@@ -111,10 +121,22 @@ if __name__ == '__main__':
                     if resultado < best_value:
                         best_error = resultado
                         best_params = (p, d, q)
+                        # Autenticação
+                        gauth = GoogleAuth()
+                        scope = ['https://www.googleapis.com/auth/drive']
+                        creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                        gauth.credentials = creds
+
+                        # Criação do objeto drive
+                        drive = GoogleDrive(gauth)
                         for col, model in cols_to_models.items():
                             os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
-                            pickle.dump(model, open(f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl", 'wb'))
-                        salva(caminho_de_saida, data_index, steps_ahead, best_error, best_params)
+                            caminho_pickle_modelo = f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
+                            file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": id_pasta_dados_simulados}]})
+                            pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
+                            file.SetContentFile(caminho_pickle_modelo)  # Define o conteúdo do arquivo
+                            file.Upload()
+                        salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                     return resultado
 
                 study = optuna.create_study(direction='minimize', study_name=f'ARIMA {aggregation_type} {data_index}: s{steps_ahead} p{partition_size}')
