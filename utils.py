@@ -108,7 +108,7 @@ def retorna_arquivo_se_existe(drive, id_pasta_raiz, caminho):
     for file in file_list:
         if file['title'] == nome_arquivo:
             file_exists = True
-            ret = file
+            ret = drive.CreateFile({'id': file['id']})
             break
     if file_exists:
         return ret
