@@ -172,7 +172,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
     X = np.array([data[i:i+win_size] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
     Y = np.array([data[i+win_size+steps_ahead] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
     X, Y = normalize_data(X, Y, min_, max_)
-    if out_size > 1:
+    if isinstance(train_data[0], dict):
         X, Y = to_ranges(X, axis=1), to_ranges(Y, axis=1)
     # plot_single_box_plot_series(train_data)
     os.makedirs(f'{caminho_de_saida}/{steps_ahead} steps ahead/{data_set_index}', exist_ok=True)
@@ -209,14 +209,14 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         validation_split=1/3,
         callbacks=tf.keras.callbacks.EarlyStopping(patience=10)
     )
-    if out_size > 1:
+    if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in val_data])
     else:
         data = np.array(val_data)
     X_test = np.array([data[i:i + win_size] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
     Y_test = np.array([data[i + win_size + steps_ahead] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
     X_test, Y_test = normalize_data(X_test, Y_test, min_, max_)
-    if out_size > 1:
+    if isinstance(train_data[0], dict):
         X_test, Y_test = to_ranges(X_test, axis=1), to_ranges(Y_test, axis=1)
         T = from_ranges(model.predict(X_test, verbose=0), axis=1)
         error = tf.keras.backend.eval(
@@ -299,8 +299,11 @@ for config in configs:
                 drive = GoogleDrive(gauth)
                 train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
                 if train_and_val_file is not None:
+                    print(train_and_val_file)
+                    print(type(train_and_val_file))
                     pasta_dados = f"{caminho_dados_simulados_local}/{caminho_dados_drive}"
                     os.makedirs(pasta_dados, exist_ok=True)
+                    print(f"{pasta_dados}/train.csv")
                     train_and_val_file.GetContentFile(f"{pasta_dados}/train.csv")
                     if aggregation_type == 'boxplot':
                         train_and_val = pd.read_csv(f"{pasta_dados}/train.csv").to_dict('records')
