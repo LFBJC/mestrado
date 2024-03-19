@@ -10,7 +10,7 @@ from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "~/arquivos_mestrado/Dados simulados"
+caminho_dados_simulados_local = "/home/ec2-user/arquivos_mestrado/Dados simulados" # "E:/mestrado/Pesquisa/Dados simulados" #
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
@@ -56,11 +56,11 @@ if __name__ == '__main__':
     # data_index = 2
     partition_size = 100 # 360, 250, 100
     steps_ahead_list = [1, 5, 20]
-    for data_index in range(2, 10):
-        # if data_index == 1:
-        #     local_steps_ahead_list=[5,20]
-        # else:
-        local_steps_ahead_list = steps_ahead_list
+    for data_index in range(3, 10):
+        if data_index == 3:
+            local_steps_ahead_list=[20]
+        else:
+            local_steps_ahead_list = steps_ahead_list
         caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
         pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
