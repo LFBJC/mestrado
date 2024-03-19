@@ -56,15 +56,15 @@ if __name__ == '__main__':
     # data_index = 2
     partition_size = 100 # 360, 250, 100
     steps_ahead_list = [1, 5, 20]
-    for data_index in range(3, 10):
-        if data_index == 3:
-            local_steps_ahead_list=[20]
+    for data_index in range(4, 10):
+        if data_index == 4:
+            local_steps_ahead_list=[5, 20]
         else:
             local_steps_ahead_list = steps_ahead_list
         caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
         pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
-        caminho_dados = f'{caminho_dados_simulados_local}/Dados/config {config}/{data_index}/partition size {partition_size}/'
+        caminho_dados = f'{caminho_dados_simulados_local}/Dados/config {config}/{data_index}/partition size {partition_size}'
         train_path = f'{caminho_dados}/train.csv'
         train_df = pd.read_csv(train_path)
         train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
