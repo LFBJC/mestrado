@@ -68,6 +68,12 @@ if __name__ == '__main__':
         os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
         caminho_dados = f'{caminho_dados_simulados_local}/Dados/config {config}/{data_index}/partition size {partition_size}'
         train_path = f'{caminho_dados}/train.csv'
+        gauth = GoogleAuth()
+        scope = ['https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+        gauth.credentials = creds
+
+        # Criação do objeto drive
         drive = GoogleDrive(gauth)
         train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
         if train_and_val_file is not None:
