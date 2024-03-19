@@ -12,6 +12,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
+id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
 caminho_dados_simulados_local = "/home/ec2-user/arquivos_mestrado/Dados simulados" # "E:/mestrado/Pesquisa/Dados simulados" #
 
