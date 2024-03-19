@@ -6,7 +6,8 @@ import optuna
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.api import VAR, ARIMA
-from utils import plot_single_box_plot_series, plot_multiple_box_plot_series, cria_ou_atualiza_arquivo_no_drive
+from utils import plot_single_box_plot_series, plot_multiple_box_plot_series, cria_ou_atualiza_arquivo_no_drive, \
+    retorna_arquivo_se_existe
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
