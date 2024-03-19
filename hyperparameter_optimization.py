@@ -276,7 +276,7 @@ objective_by_model_type = {
 model_type = "CNN"
 for config in configs:
     for partition_size in [100]: # 500, 360, 250, 100
-        for data_set_index in range(10):
+        for data_set_index in range(1, 10, 2):
             caminho_dados_drive = f'Dados/config {config}/{data_set_index}/partition size {partition_size}'
             saida_complemento = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
             caminho_de_saida = f"{caminho_dados_simulados_local}/{saida_complemento}"
