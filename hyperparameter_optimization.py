@@ -56,7 +56,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
         # activation_conv_2=activation_conv_2,
         dense_neurons=dense_neurons, dense_activation='sigmoid'
     )
-    N_EPOCHS = 10000000
+    N_EPOCHS = 1000
     X, Y = images_and_targets_from_data_series(
         train_data, input_win_size=win_size, steps_ahead=steps_ahead
     )
@@ -192,7 +192,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         dropouts.append(trial.suggest_float(f"Dropout da camada {camada}", 0.1, 0.5))
         recurrent_dropouts.append(trial.suggest_float(f"Dropout recorrente da camada {camada}", 0.1, 0.5))
     model = create_lstm_model(X.shape[1:], units, activations, recurrent_activations, dropouts, recurrent_dropouts)
-    N_EPOCHS = 10000000
+    N_EPOCHS = 1000
     model.compile(
         optimizer=trial.suggest_categorical('optimizer', ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
         loss=trial.suggest_categorical('loss', [
