@@ -22,7 +22,7 @@ configurations = {
 for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_index - starting_index)):
     seed_index = starting_index + i
     for config, data_generation_function in configurations.items():
-        data_dir = f'E:/mestrado/Pesquisa/Dados simulados/Dados/config {config}/{seed_index}'
+        data_dir = f'~/Desktop/mestrado Felipe/config {config}/{seed_index}'
         os.makedirs(data_dir, exist_ok=True)
         np.random.seed(seed)
         try:
