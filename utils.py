@@ -240,6 +240,33 @@ def van_der_pol(x, v, mu, sigma, dt, xi):
     return dxdt, dvdt
 
 
+def NAR(n_samples: int = 10000, begin_value: float=None):
+    if begin_value is None:
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+    out = [begin_value]
+    for step in range(n_samples-1):
+        out.append(0.7*out[-1]/(out[-1]+2) + np.random.normal())
+    return out
+
+
+def STAR1(n_samples: int = 10000, begin_value: float=None):
+    if begin_value is None:
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+    out = [begin_value]
+    for step in range(n_samples-1):
+        out.append(0.8*out[-1]-0.8*out[-1]/(1 - np.exp(-10*out[-1])) + np.random.normal())
+    return out
+
+
+def STAR2(n_samples: int = 10000, begin_value: float=None):
+    if begin_value is None:
+        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+    out = [begin_value]
+    for step in range(n_samples-1):
+        out.append(0.3*out[-1]+0.6*out[-2]+(0.1-0.9*out[-1]+0.8*out[-2])/(1 + np.exp(-10*out[-1])) + np.random.normal())
+    return out
+
+
 def aggregate_data_by_chunks(data, chunk_size: int = 10):
     box_plots = []
     for chunk in range(int(np.ceil(len(data)/chunk_size))):
