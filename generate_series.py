@@ -22,7 +22,7 @@ configurations = {
 for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_index - starting_index)):
     seed_index = starting_index + i
     for config, data_generation_function in configurations.items():
-        data_dir = f'~/Desktop/mestrado Felipe/config {config}/{seed_index}'
+        data_dir = f'C:/Users/User/Desktop/mestrado Felipe/config {config}/{seed_index}'
         os.makedirs(data_dir, exist_ok=True)
         np.random.seed(seed)
         try:
@@ -57,7 +57,7 @@ for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_inde
                         f'{data_dir}/partition size {partition_size}/test.csv', index=False
                     )
         except Exception as e:
-            with open('E:/mestrado/Pesquisa/Dados simulados/erros_ao_gerar_dados.txt', 'a+') as f:
+            with open('C:/Users/User/Desktop/mestrado Felipe/erros_ao_gerar_dados.txt', 'a+') as f:
                 warnings.warn(f"AN ERROR OCCURRED WITH CONFIGURATION {config} - SEED INDEX {seed_index}")
                 f.write(f"Couldn't generate data for the {seed_index+1}th seed and configuration {config}\n")
                 f.write(traceback.format_exc())
