@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from functools import reduce
+# TODO INVESTIGAR
 
 caminho_dados_brutos = "E:/mestrado/Pesquisa/Dados reais/Dados brutos"
 caminho_saida = "E:/mestrado/Pesquisa/Dados reais/Dados tratados/dados_climaticos.csv"
@@ -51,8 +52,8 @@ with open(f"{caminho_dados_brutos}/WWR_Region00_2011-2016_tables.txt", "r") as f
                             if valores[i].isnumeric():
                                 df.loc[df[cond].index, metadado] = float(valores[i])
                         else:
-                            if valores[i].isnumeric():
-                                record[metadado] = float(valores[i])
+                            if valores[i].replace(',', '').replace('.', '').isnumeric():
+                                record[metadado] = float(valores[i].replace(',', '.'))
                             records.append(record)
                 if records:
                     df = pd.concat([df, pd.DataFrame.from_records(records)])

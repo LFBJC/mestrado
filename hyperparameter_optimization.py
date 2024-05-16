@@ -265,7 +265,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
     return error
 
 
-configs = [4] # 4] # 1, 2, 3,
+configs = [1, 2, 3]
 aggregation_type = 'boxplot' # 'median' # 
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
@@ -273,10 +273,10 @@ objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "CNN"
+model_type = "LSTM"
 for config in configs:
     for partition_size in [100]: # 500, 360, 250, 100
-        for data_set_index in range(1, 10, 2):
+        for data_set_index in range(0,10):
             caminho_dados_drive = f'Dados/config {config}/{data_set_index}/partition size {partition_size}'
             saida_complemento = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
             caminho_de_saida = f"{caminho_dados_simulados_local}/{saida_complemento}"

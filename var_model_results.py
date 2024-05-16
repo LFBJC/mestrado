@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "/home/ec2-user/arquivos_mestrado/Dados simulados" # "E:/mestrado/Pesquisa/Dados simulados" #
+caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
@@ -54,110 +54,113 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
         )
 
 if __name__ == '__main__':
-    model_name = "ARIMA" # "VAR" #
+    model_name = "VAR" # "ARIMA" # 
     aggregation_type = "boxplot" # only relevant for ARIMA
-    config = 4
-    # data_index = 2
-    partition_size = 100 # 360, 250, 100
-    steps_ahead_list = [1, 5, 20]
-    for data_index in range(4, 10):
-        if data_index == 4:
-            local_steps_ahead_list=[5, 20]
-        else:
+    for config in [1, 2, 4]:
+        print(f'*CONFIG {config}*')
+        # data_index = 2
+        partition_size = 100 # 360, 250, 100
+        steps_ahead_list = [1, 5, 20]
+        for data_index in range(10):
+            print(f'*DATA_INDEX {data_index}*')
+            # if data_index == 3:
+            #     local_steps_ahead_list = [5, 20]
+            # else:
             local_steps_ahead_list = steps_ahead_list
-        caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
-        pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
-        os.makedirs(os.path.dirname(caminho_de_saida), exist_ok=True)
-        caminho_dados_drive = f'Dados/config {config}/{data_index}/partition size {partition_size}'
-        caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
-        train_path = f'{caminho_dados}/train.csv'
-        gauth = GoogleAuth()
-        scope = ['https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
-        gauth.credentials = creds
+            caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
+            pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
+            os.makedirs(pasta_saida, exist_ok=True)
+            caminho_dados_drive = f'Dados/config {config}/{data_index}/partition size {partition_size}'
+            caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
+            train_path = f'{caminho_dados}/train.csv'
+            gauth = GoogleAuth()
+            scope = ['https://www.googleapis.com/auth/drive']
+            creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+            gauth.credentials = creds
 
-        # Criação do objeto drive
-        drive = GoogleDrive(gauth)
-        train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
-        if train_and_val_file is not None:
-            os.makedirs(caminho_dados, exist_ok=True)
-            train_and_val_file.GetContentFile(train_path)
-            train_df = pd.read_csv(train_path)
-            train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
-            for steps_ahead in local_steps_ahead_list:
-                best_error = np.inf
-                best_params = None
-                if model_name == "VAR":
-                    for lags in range(1, 10):
-                        model = VAR(train_df)
-                        model_fitted = model.fit(maxlags=lags)
-                        resultado = roda_var(model_fitted, val_df, lags, steps_ahead)
-                        if resultado < best_error:
-                            print(lags)
-                            print(resultado, best_error)
-                            best_error = resultado
-                            best_params = lags
-                            pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}.pkl", 'wb'))
-                            salva(None, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
-                else:
-                    def arima_para_coluna(coluna, order):
-                        try:
-                            model = ARIMA(train_df[coluna].values, order=order)
-                            p, d, q = order
-                            model_fitted = model.fit()
-                            val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
-                            relative_errors_val = []
-                            for i, row in val_data.iterrows():
-                                if i > p and i + 1 + steps_ahead < val_data.shape[0]:
-                                    input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
-                                    forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
-                                    relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
-                            return model_fitted, np.mean(relative_errors_val)
-                        except:
-                            return None, np.inf
+            # Criação do objeto drive
+            drive = GoogleDrive(gauth)
+            train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
+            if train_and_val_file is not None:
+                os.makedirs(caminho_dados, exist_ok=True)
+                train_and_val_file.GetContentFile(train_path)
+                train_df = pd.read_csv(train_path)
+                train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
+                for steps_ahead in local_steps_ahead_list:
+                    print(f'*STEPS {steps_ahead}*')
+                    best_error = np.inf
+                    best_params = None
+                    if model_name == "VAR":
+                        for lags in range(1, 10):
+                            model = VAR(train_df)
+                            model_fitted = model.fit(maxlags=lags)
+                            resultado = roda_var(model_fitted, val_df, lags, steps_ahead)
+                            if resultado < best_error:
+                                print(lags)
+                                print(resultado, best_error)
+                                best_error = resultado
+                                best_params = lags
+                                pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}.pkl", 'wb'))
+                                salva(None, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
+                    else:
+                        def arima_para_coluna(coluna, order):
+                            try:
+                                model = ARIMA(train_df[coluna].values, order=order)
+                                p, d, q = order
+                                model_fitted = model.fit()
+                                val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
+                                relative_errors_val = []
+                                for i, row in val_data.iterrows():
+                                    if i > p and i + 1 + steps_ahead < val_data.shape[0]:
+                                        input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
+                                        forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
+                                        relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
+                                return model_fitted, np.mean(relative_errors_val)
+                            except:
+                                return None, np.inf
 
-                    def objective(trial, study):
-                        p = trial.suggest_int('p', 1, 10)
-                        d = trial.suggest_int('d', 0, 2)
-                        q = trial.suggest_int('q', 0, 8)
-                        order = (p, d, q)
-                        cols_to_models = {}
-                        if aggregation_type == "median":
-                            cols_to_models["med"], resultado = arima_para_coluna('med', order)
-                        else:
-                            resultado = 0
-                            num_cols = len(train_df.columns)
-                            for col in train_df.columns:
-                                cols_to_models[col], resultado_col = arima_para_coluna(col, order)
-                                resultado += resultado_col/num_cols
-                        try:
-                            best_value = study.best_value
-                        except ValueError:
-                            best_value = np.inf
-                        if resultado < best_value:
-                            best_error = resultado
-                            best_params = (p, d, q)
-                            # Autenticação
-                            gauth = GoogleAuth()
-                            scope = ['https://www.googleapis.com/auth/drive']
-                            creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
-                            gauth.credentials = creds
+                        def objective(trial, study):
+                            p = trial.suggest_int('p', 1, 10)
+                            d = trial.suggest_int('d', 0, 2)
+                            q = trial.suggest_int('q', 0, 8)
+                            order = (p, d, q)
+                            cols_to_models = {}
+                            if aggregation_type == "median":
+                                cols_to_models["med"], resultado = arima_para_coluna('med', order)
+                            else:
+                                resultado = 0
+                                num_cols = len(train_df.columns)
+                                for col in train_df.columns:
+                                    cols_to_models[col], resultado_col = arima_para_coluna(col, order)
+                                    resultado += resultado_col/num_cols
+                            try:
+                                best_value = study.best_value
+                            except ValueError:
+                                best_value = np.inf
+                            if resultado < best_value:
+                                best_error = resultado
+                                best_params = (p, d, q)
+                                # Autenticação
+                                gauth = GoogleAuth()
+                                scope = ['https://www.googleapis.com/auth/drive']
+                                creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                                gauth.credentials = creds
 
-                            # Criação do objeto drive
-                            drive = GoogleDrive(gauth)
-                            for col, model in cols_to_models.items():
-                                os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
-                                caminho_pickle_modelo = f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
-                                pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                                caminho_modelo_drive = f'{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
-                                cria_ou_atualiza_arquivo_no_drive(
-                                    drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
-                                )
-                            salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
-                        return resultado
+                                # Criação do objeto drive
+                                drive = GoogleDrive(gauth)
+                                for col, model in cols_to_models.items():
+                                    os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
+                                    caminho_pickle_modelo = f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
+                                    pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
+                                    caminho_modelo_drive = f'{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
+                                    cria_ou_atualiza_arquivo_no_drive(
+                                        drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
+                                    )
+                                salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
+                            return resultado
 
-                    study = optuna.create_study(direction='minimize', study_name=f'ARIMA {aggregation_type} {data_index}: s{steps_ahead} p{partition_size}')
-                    study.optimize(lambda trial: objective(trial, study), n_trials=30)
-        else:
-            warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")
+                        study = optuna.create_study(direction='minimize', study_name=f'ARIMA {aggregation_type} {data_index}: s{steps_ahead} p{partition_size}')
+                        study.optimize(lambda trial: objective(trial, study), n_trials=30)
+            else:
+                warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")
 

@@ -14,7 +14,7 @@ raw_data_len = 1000000
 percentual_train_size = .75
 seeds_that_will_actually_be_used = seeds[starting_index:end_index]
 configurations = {
-    4: generate_stochastic_van_der_pol_series # 1: random_walk, 2: logistic_map, 3: henom_map,
+    1: random_walk, 2: logistic_map, 3: henom_map, 4: generate_stochastic_van_der_pol_series
 }
 for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_index - starting_index)):
     seed_index = starting_index + i
@@ -41,7 +41,7 @@ for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_inde
                 samples_train = len(train_series)
                 test_series = list(pd.read_csv(f'{data_dir}/raw_test_series.csv')['s'].values)
                 samples_test = len(test_series)
-            for partition_size in [500, 360, 250, 100]: #, 75, 60, 50, 25, 10, 5]:
+            for partition_size in [100]: # [500, 360, 250, 100, 75, 60, 50, 25, 10, 5]:
                 os.makedirs(f'{data_dir}/partition size {partition_size}/', exist_ok=True)
                 if not os.path.exists(f'{data_dir}/partition size {partition_size}/train.csv') or\
                         not os.path.exists(f'{data_dir}/partition size {partition_size}/test.csv'):

@@ -16,6 +16,8 @@ grouped = pd.DataFrame({
     'q3': df.groupby("SETTLEMENTDATE")["TOTALDEMAND"].apply(lambda data: np.quantile(data, 0.75)),
     'whishi': df.groupby("SETTLEMENTDATE")["TOTALDEMAND"].max()
 })
-train_data, test_data = grouped.iloc[:int(0.75*grouped.shape[0])], grouped.iloc[int(0.75*grouped.shape[0]):]
+s0, s1 = int(0.5*grouped.shape[0]), int(0.75*grouped.shape[0])
+train_data, val_data, test_data = grouped.iloc[:s0], grouped.iloc[s0:s1], grouped.iloc[s1:]
 train_data.to_csv(f"{pasta_de_saida}/train.csv")
+val_data.to_csv(f"{pasta_de_saida}/val.csv")
 test_data.to_csv(f"{pasta_de_saida}/test.csv")
