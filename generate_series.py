@@ -35,7 +35,10 @@ for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_inde
                     train_series, kwargs = result, {}
                 pd.DataFrame({'s': train_series}).to_csv(f'{data_dir}/raw_train_series.csv', index=False)
                 samples_test = int((1 - percentual_train_size) * raw_data_len)
-                test_series = data_generation_function(n_samples=samples_test, begin_value=train_series[-1], **kwargs)
+                if config != 7:
+                    test_series = data_generation_function(n_samples=samples_test, begin_value=train_series[-1], **kwargs)
+                else:
+                    test_series = data_generation_function(n_samples=samples_test, begin_values=[train_series[-2], train_series[-1]], **kwargs)
                 if isinstance(test_series, tuple):
                     test_series = test_series[0]
                 pd.DataFrame({'s': test_series}).to_csv(f'{data_dir}/raw_test_series.csv', index=False)

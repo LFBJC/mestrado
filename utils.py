@@ -258,10 +258,10 @@ def STAR1(n_samples: int = 10000, begin_value: float=None):
     return out
 
 
-def STAR2(n_samples: int = 10000, begin_value: float=None):
-    if begin_value is None:
-        begin_value = np.random.rand() # valor aleatório entre 0 e 1
-    out = [begin_value]
+def STAR2(n_samples: int = 10000, begin_values: List[float]=None):
+    if begin_values is None:
+        begin_values = [np.random.rand(), np.random.rand()] # valores aleatórios entre 0 e 1
+    out = begin_values
     for step in range(n_samples-1):
         out.append(0.3*out[-1]+0.6*out[-2]+(0.1-0.9*out[-1]+0.8*out[-2])/(1 + np.exp(-10*out[-1])) + np.random.normal())
     return out
