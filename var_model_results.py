@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
+caminho_dados_simulados_local = "C:/Users/User/Desktop/mestrado Felipe" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []

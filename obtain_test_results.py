@@ -10,7 +10,7 @@ from utils import MMRE, images_and_targets_from_data_series, normalize_data, den
 import traceback
 
 partition_size = 100
-pasta_raiz =  f'E:/mestrado/Pesquisa/Dados simulados'
+pasta_raiz =  f'C:/Users/User/Desktop/mestrado Felipe'
 saida_df_redes_neurais = f'{pasta_raiz}/redes_neurais.csv'
 for config in [1, 2, 4]:
     caminho_cnns = f"{pasta_raiz}/Saída da otimização de hiperparâmetros CNN conf{config}/boxplot"
