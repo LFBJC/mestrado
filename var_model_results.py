@@ -56,7 +56,7 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 if __name__ == '__main__':
     model_name = "VAR" # "ARIMA" # 
     aggregation_type = "boxplot" # only relevant for ARIMA
-    for config in [1, 2, 4]:
+    for config in [5, 6, 7]:
         print(f'*CONFIG {config}*')
         # data_index = 2
         partition_size = 100 # 360, 250, 100
