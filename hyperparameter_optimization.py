@@ -265,7 +265,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
     return error
 
 
-configs = [5, 6, 7]
+configs = [7]
 aggregation_type = 'boxplot' # 'median' # 
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
