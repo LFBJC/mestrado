@@ -10,12 +10,12 @@ from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_t
     denormalize_data, cria_ou_atualiza_arquivo_no_drive, retorna_arquivo_se_existe
 from tqdm import tqdm
 import tensorflow as tf
-# from pydrive2.auth import GoogleAuth
-# from pydrive2.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
-caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados" # "C:/Users/User/Desktop/mestrado Felipe" #
+caminho_dados_simulados_local = "C:/Users/User/Desktop/mestrado Felipe" # "E:/mestrado/Pesquisa/Dados simulados" #
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
@@ -126,29 +126,29 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     gauth.credentials = creds
 
     # Criação do objeto drive
-    # drive = GoogleDrive(gauth)
+    drive = GoogleDrive(gauth)
     if np.isnan(error):
         print(debug)
     try:
         if error < study.best_value:
             caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
-            # caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
+            caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
             model.save(caminho_modelo_local)
-            # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
-            # caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
-            # caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
+            cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
+            caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
+            caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
             pickle.dump(history.history, open(f'{caminho_completo_saida}/best_model_history.pkl', 'wb'))
-            # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
+            cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
     except ValueError:
         # if no trials are completed yet save the first trial
         caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
-        # caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
+        caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
         model.save(caminho_modelo_local)
-        # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
-        # caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
-        # caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
+        cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
+        caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
+        caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
         pickle.dump(history.history, open(f'{caminho_completo_saida}/best_model_history.pkl', 'wb'))
-        # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
+        cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
     opt_hist_df = pd.DataFrame.from_records([trial.params])
     # opt_hist_df['w2'] = w2
     # opt_hist_df['w3'] = w3
@@ -159,8 +159,8 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     append_condition = os.path.exists(hist_path)
     print('append_condition:', append_condition)
     opt_hist_df.to_csv(hist_path, mode='a' if append_condition else 'w', index=False, header=(not append_condition))
-    # hist_path_drive = f'{caminho_interno}/opt_hist.csv'
-    # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
+    hist_path_drive = f'{caminho_interno}/opt_hist.csv'
+    cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
     return error
 
 
@@ -233,39 +233,39 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
     gauth.credentials = creds
 
     # Criação do objeto drive
-    # drive = GoogleDrive(gauth)
+    drive = GoogleDrive(gauth)
     try:
         if error < study.best_value:
             caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
-            # caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
+            caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
             model.save(caminho_modelo_local)
-            # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
-            # caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
-            # caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
+            cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
+            caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
+            caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
             pickle.dump(history.history, open(f'{caminho_completo_saida}/best_model_history.pkl', 'wb'))
-            # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
+            cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
     except ValueError:
         # if no trials are completed yet save the first trial
         caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
-        # caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
+        caminho_modelo_drive = f'{caminho_interno}/best_model.h5'
         model.save(caminho_modelo_local)
-        # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
-        # caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
-        # caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
+        cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
+        caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
+        caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
         pickle.dump(history.history, open(f'{caminho_completo_saida}/best_model_history.pkl', 'wb'))
-        # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
+        cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
     hist_path = f'{caminho_completo_saida}/opt_hist.csv'
     if os.path.exists(hist_path):
         opt_hist_df = pd.concat([pd.read_csv(hist_path), pd.DataFrame.from_records([{**trial.params, 'score': error}])])
     else:
         opt_hist_df = pd.DataFrame.from_records([{**trial.params, 'score': error}])
     opt_hist_df.to_csv(hist_path, index=False)
-    # hist_path_drive = f'{caminho_interno}/opt_hist.csv'
-    # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
+    hist_path_drive = f'{caminho_interno}/opt_hist.csv'
+    cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
     return error
 
 
-configs = [7]
+configs = [5, 6, 7]
 aggregation_type = 'boxplot' # 'median' # 
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
@@ -290,111 +290,111 @@ for config in configs:
                     'pasta_base_saida': caminho_dados_simulados_local,
                     'caminho_interno': f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}/{steps_ahead} steps ahead/"
                 }
-                # gauth = GoogleAuth()
-                # scope = ['https://www.googleapis.com/auth/drive']
-                # creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
-                # gauth.credentials = creds
+                gauth = GoogleAuth()
+                scope = ['https://www.googleapis.com/auth/drive']
+                creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                gauth.credentials = creds
 
                 # Criação do objeto drive
-                # drive = GoogleDrive(gauth)
-                # train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
-                # if train_and_val_file is not None:
-                #     print(train_and_val_file)
-                #     print(type(train_and_val_file))
-                pasta_dados = f"{caminho_dados_simulados_local}/{caminho_dados_drive}"
-                #     os.makedirs(pasta_dados, exist_ok=True)
-                #     print(f"{pasta_dados}/train.csv")
-                #     train_and_val_file.GetContentFile(f"{pasta_dados}/train.csv")
-                if aggregation_type == 'boxplot':
-                    train_and_val = pd.read_csv(f"{pasta_dados}/train.csv").to_dict('records')
-                else:
-                    print('med')
-                    train_and_val = pd.read_csv(f'{pasta_dados}/train.csv')['med'].values
-                objective_kwargs['train_data'] = train_and_val[:int(2 / 3 * len(train_and_val))]
-                objective_kwargs['val_data'] = train_and_val[int(2 / 3 * len(train_and_val)):]
-                study = optuna.create_study(
-                    direction='minimize',
-                    pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
-                    study_name=f'hyperparameter_opt {data_set_index}, {model_type}, {steps_ahead} steps ahead, partition size={partition_size}'
-                )
-                objective_kwargs['study'] = study
-                # opt_hist_file_drive =  retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
-                if not os.path.exists(f'{caminho_completo_saida}/opt_hist.csv'):# opt_hist_file_drive is None:
-                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
-                else:
-                    # opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
-                    opt_hist_df = pd.read_csv(f'{caminho_completo_saida}/opt_hist.csv')
-                    for _, row in opt_hist_df.iterrows():
-                        train_data_size = int(2 / 3 * len(train_and_val))
-                        if model_type == "CNN":
-                            if aggregation_type == "boxplot":
-                                available_kernel_sizes = [(2, 2), (3, 2)]
-                            else:
-                                available_kernel_sizes = [(2, 1), (3, 1)]
-                            win_size = int(row['win_size'])
-                            kernel_size_conv_1 = ast.literal_eval(row['kernel_size_conv_1'])
-                            pool_size_1 = ast.literal_eval(row['pool_size_1'])
-                            filters_conv_1 = int(row['filters_conv_1'])
-                            w2 = (win_size - kernel_size_conv_1[0]) - pool_size_1[0] + 2
-                            h2 = (5 - kernel_size_conv_1[0]) - pool_size_1[1] + 2
-                            distributions = {
-                                'win_size': optuna.distributions.IntDistribution(10, int(train_data_size/10)),
-                                'filters_conv_1': optuna.distributions.IntDistribution(2, 10),
-                                'kernel_size_conv_1': optuna.distributions.CategoricalDistribution(available_kernel_sizes),
-                                'activation_conv_1': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
-                                'pool_size_1': optuna.distributions.CategoricalDistribution([(2, 1), (3, 1)]),
-                                'pool_type_1': optuna.distributions.CategoricalDistribution(['max', 'average']),
-                                'dense_neurons': optuna.distributions.IntDistribution(5, w2 * h2 * filters_conv_1 - 1),
-                                'optimizer': optuna.distributions.CategoricalDistribution(['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
-                                'loss': optuna.distributions.CategoricalDistribution([
-                                    'mean_squared_error', 'mean_squared_logarithmic_error',
-                                    'mean_absolute_percentage_error',
-                                    'mean_absolute_error'
-                                ])
-                            }
-                        else:
-                            distributions = {
-                                'win_size': optuna.distributions.IntDistribution(10, int(train_data_size/10)),
-                                'Número de Camadas': optuna.distributions.IntDistribution(1, 5),
-                                'Unidades na camada 0': optuna.distributions.IntDistribution(4, 64),
-                                'Dropout na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
-                                'Dropout recorrente na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
-                                'optimizer': optuna.distributions.CategoricalDistribution(
-                                    ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
-                                'loss': optuna.distributions.CategoricalDistribution([
-                                    'mean_squared_error', 'mean_squared_logarithmic_error',
-                                    'mean_absolute_percentage_error',
-                                    'mean_absolute_error'
-                                ])
-                            }
-                            for i in range(1, 5):
-                                if f'Unidades na  camada {i - 1}' in row.to_dict().keys():
-                                    distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
-                                        4, row[f'Unidades na camada {i - 1}']),
+                drive = GoogleDrive(gauth)
+                train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
+                if train_and_val_file is not None:
+                    print(train_and_val_file)
+                    print(type(train_and_val_file))
+                    pasta_dados = f"{caminho_dados_simulados_local}/{caminho_dados_drive}"
+                    os.makedirs(pasta_dados, exist_ok=True)
+                    print(f"{pasta_dados}/train.csv")
+                    train_and_val_file.GetContentFile(f"{pasta_dados}/train.csv")
+                    if aggregation_type == 'boxplot':
+                        train_and_val = pd.read_csv(f"{pasta_dados}/train.csv").to_dict('records')
+                    else:
+                        print('med')
+                        train_and_val = pd.read_csv(f'{pasta_dados}/train.csv')['med'].values
+                    objective_kwargs['train_data'] = train_and_val[:int(2 / 3 * len(train_and_val))]
+                    objective_kwargs['val_data'] = train_and_val[int(2 / 3 * len(train_and_val)):]
+                    study = optuna.create_study(
+                        direction='minimize',
+                        pruner=optuna.pruners.MedianPruner(n_startup_trials=30),
+                        study_name=f'hyperparameter_opt {data_set_index}, {model_type}, {steps_ahead} steps ahead, partition size={partition_size}'
+                    )
+                    objective_kwargs['study'] = study
+                    opt_hist_file_drive =  retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
+                    if opt_hist_file_drive is None:
+                        study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
+                    else:
+                        opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
+                        opt_hist_df = pd.read_csv(f'{caminho_completo_saida}/opt_hist.csv')
+                        for _, row in opt_hist_df.iterrows():
+                            train_data_size = int(2 / 3 * len(train_and_val))
+                            if model_type == "CNN":
+                                if aggregation_type == "boxplot":
+                                    available_kernel_sizes = [(2, 2), (3, 2)]
                                 else:
-                                    distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
-                                        4, 64),
-                                    distributions[
-                                        f'Dropout na camada {i}'] = optuna.distributions.FloatDistribution(
-                                        0.1, 0.5),
-                                    distributions[
-                                        f'Dropout recorrente na camada {i}'] = optuna.distributions.FloatDistribution(
-                                        0.1, 0.5)
-                        def value_from_row_value(c, v):
-                            print(f'{c}: {v}')
-                            if isinstance(v, str):
-                                try:
-                                    return ast.literal_eval(v)
-                                except ValueError:
-                                    return v
+                                    available_kernel_sizes = [(2, 1), (3, 1)]
+                                win_size = int(row['win_size'])
+                                kernel_size_conv_1 = ast.literal_eval(row['kernel_size_conv_1'])
+                                pool_size_1 = ast.literal_eval(row['pool_size_1'])
+                                filters_conv_1 = int(row['filters_conv_1'])
+                                w2 = (win_size - kernel_size_conv_1[0]) - pool_size_1[0] + 2
+                                h2 = (5 - kernel_size_conv_1[0]) - pool_size_1[1] + 2
+                                distributions = {
+                                    'win_size': optuna.distributions.IntDistribution(10, int(train_data_size/10)),
+                                    'filters_conv_1': optuna.distributions.IntDistribution(2, 10),
+                                    'kernel_size_conv_1': optuna.distributions.CategoricalDistribution(available_kernel_sizes),
+                                    'activation_conv_1': optuna.distributions.CategoricalDistribution(['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish']),
+                                    'pool_size_1': optuna.distributions.CategoricalDistribution([(2, 1), (3, 1)]),
+                                    'pool_type_1': optuna.distributions.CategoricalDistribution(['max', 'average']),
+                                    'dense_neurons': optuna.distributions.IntDistribution(5, w2 * h2 * filters_conv_1 - 1),
+                                    'optimizer': optuna.distributions.CategoricalDistribution(['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
+                                    'loss': optuna.distributions.CategoricalDistribution([
+                                        'mean_squared_error', 'mean_squared_logarithmic_error',
+                                        'mean_absolute_percentage_error',
+                                        'mean_absolute_error'
+                                    ])
+                                }
                             else:
-                                return v
-                        study.add_trial(
-                            optuna.trial.create_trial(
-                                params={c: value_from_row_value(c, v) for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']},
-                                distributions=distributions,
-                                value=row['score']
+                                distributions = {
+                                    'win_size': optuna.distributions.IntDistribution(10, int(train_data_size/10)),
+                                    'Número de Camadas': optuna.distributions.IntDistribution(1, 5),
+                                    'Unidades na camada 0': optuna.distributions.IntDistribution(4, 64),
+                                    'Dropout na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
+                                    'Dropout recorrente na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
+                                    'optimizer': optuna.distributions.CategoricalDistribution(
+                                        ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
+                                    'loss': optuna.distributions.CategoricalDistribution([
+                                        'mean_squared_error', 'mean_squared_logarithmic_error',
+                                        'mean_absolute_percentage_error',
+                                        'mean_absolute_error'
+                                    ])
+                                }
+                                for i in range(1, 5):
+                                    if f'Unidades na  camada {i - 1}' in row.to_dict().keys():
+                                        distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
+                                            4, row[f'Unidades na camada {i - 1}']),
+                                    else:
+                                        distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
+                                            4, 64),
+                                        distributions[
+                                            f'Dropout na camada {i}'] = optuna.distributions.FloatDistribution(
+                                            0.1, 0.5),
+                                        distributions[
+                                            f'Dropout recorrente na camada {i}'] = optuna.distributions.FloatDistribution(
+                                            0.1, 0.5)
+                            def value_from_row_value(c, v):
+                                print(f'{c}: {v}')
+                                if isinstance(v, str):
+                                    try:
+                                        return ast.literal_eval(v)
+                                    except ValueError:
+                                        return v
+                                else:
+                                    return v
+                            study.add_trial(
+                                optuna.trial.create_trial(
+                                    params={c: value_from_row_value(c, v) for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']},
+                                    distributions=distributions,
+                                    value=row['score']
+                                )
                             )
-                        )
-                        study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
-                                       n_trials=n_trials - opt_hist_df.shape[0])
+                            study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
+                                           n_trials=n_trials - opt_hist_df.shape[0])
