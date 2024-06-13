@@ -8,11 +8,14 @@ import numpy as np
 import pandas as pd
 from utils import MMRE, images_and_targets_from_data_series, normalize_data, denormalize_data, from_ranges, to_ranges
 import traceback
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 partition_size = 100
-pasta_raiz =  f'C:/Users/User/Desktop/mestrado Felipe'
+pasta_raiz =  f'E:/mestrado/Pesquisa/Dados simulados'
 saida_df_redes_neurais = f'{pasta_raiz}/redes_neurais.csv'
-for config in [1, 2, 4]:
+for config in [4, 5, 6, 7]:
     caminho_cnns = f"{pasta_raiz}/Saída da otimização de hiperparâmetros CNN conf{config}/boxplot"
     caminho_lstms = f"{pasta_raiz}/Saída da otimização de hiperparâmetros LSTM conf{config}/boxplot/"
     arima_path = f"{pasta_raiz}/ARIMA/config {config}/boxplot"

@@ -15,7 +15,7 @@ from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
-caminho_dados_simulados_local = "C:/Users/User/Desktop/mestrado Felipe" # "E:/mestrado/Pesquisa/Dados simulados" #
+caminho_dados_simulados_local = "/home/ec2-user/arquivos_mestrado/Dados simulados" # "E:/mestrado/Pesquisa/Dados simulados" #
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
@@ -265,7 +265,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
     return error
 
 
-configs = [7]
+configs = [5]
 aggregation_type = 'boxplot' # 'median' # 
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
@@ -273,15 +273,19 @@ objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "LSTM"
+model_type = "CNN"
 for config in configs:
     for partition_size in [100]: # 500, 360, 250, 100
-        for data_set_index in range(4,10):
+        for data_set_index in range(5, 10):
+            if data_set_index == 0:
+                local_steps_ahead = [20]
+            else:
+                local_steps_ahead = steps_ahead_list
             caminho_dados_drive = f'Dados/config {config}/{data_set_index}/partition size {partition_size}'
             saida_complemento = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
             caminho_de_saida = f"{caminho_dados_simulados_local}/{saida_complemento}"
             objective = objective_by_model_type[model_type]
-            for steps_ahead in steps_ahead_list:
+            for steps_ahead in local_steps_ahead:
                 # plot_single_box_plot_series(train_data)
                 saida_drive = f"{saida_complemento}/{steps_ahead} steps ahead/"
                 caminho_completo_saida = f'{caminho_de_saida}/{steps_ahead} steps ahead/'
@@ -398,3 +402,5 @@ for config in configs:
                             )
                             study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
                                            n_trials=n_trials - opt_hist_df.shape[0])
+# c7 8s1
+# c6 8s1

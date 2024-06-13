@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "C:/Users/User/Desktop/mestrado Felipe" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
+caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
@@ -54,16 +54,16 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
         )
 
 if __name__ == '__main__':
-    model_name = "VAR" # "ARIMA" # 
+    model_name = "ARIMA" # "VAR" #
     aggregation_type = "boxplot" # only relevant for ARIMA
-    for config in [5, 6, 7]:
+    for config in [7]:
         print(f'*CONFIG {config}*')
         # data_index = 2
         partition_size = 100 # 360, 250, 100
         steps_ahead_list = [1, 5, 20]
         for data_index in range(10):
             print(f'*DATA_INDEX {data_index}*')
-            # if data_index == 3:
+            # if data_index == 8:
             #     local_steps_ahead_list = [5, 20]
             # else:
             local_steps_ahead_list = steps_ahead_list
@@ -159,7 +159,7 @@ if __name__ == '__main__':
                                 salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                             return resultado
 
-                        study = optuna.create_study(direction='minimize', study_name=f'ARIMA {aggregation_type} {data_index}: s{steps_ahead} p{partition_size}')
+                        study = optuna.create_study(direction='minimize', study_name=f'{model_name} {aggregation_type} {data_index}: c{config} s{steps_ahead} p{partition_size}')
                         study.optimize(lambda trial: objective(trial, study), n_trials=30)
             else:
                 warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")

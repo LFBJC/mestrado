@@ -245,7 +245,7 @@ def NAR(n_samples: int = 10000, begin_value: float=None):
         begin_value = np.random.rand() # valor aleatório entre 0 e 1
     out = [begin_value]
     for step in range(n_samples-1):
-        out.append(0.7*out[-1]/(out[-1]+2) + np.random.normal())
+        out.append(0.7*np.abs(out[-1])/(np.abs(out[-1])+2) + np.random.normal())
     return out
 
 
