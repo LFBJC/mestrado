@@ -71,25 +71,32 @@ meses_do_ano = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Jul
 #             raise e
 # df.to_csv(caminho_intermediario, index=False)
 df = pd.read_csv(caminho_intermediario)
+df['Latitude'] = df['Latitude'].map(
+    lambda x: (-1 if x.replace('\'', '').endswith('S') else 1) * int(x[:x.index('º')]) + int(
+        x[x.index('º') + 1:].replace('N', '').replace('S', '').replace('\'', '')) / 60).map(lambda x: x * 111320)
+df['Longitude'] = df['Longitude'].map(
+    lambda x: (-1 if x.replace('\'', '').endswith('W') else 1) * int(x[:x.index('º')]) + int(
+        x[x.index('º') + 1:].replace('E', '').replace('W', '').replace('\'', '')) / 60).map(lambda x: x * 111320)
 for measure in ['Mean Daily Air Temperature (in deg Celsius)', 'Total Monthly Precipitation (in millimeters)',
                 'Mean Station Pressure (in hPa)', 'Mean Sea Level Pressure (in hPa)',
                 'Mean Daily Maximum Air Temperature (in deg Celsius)',
                 'Mean Daily Minimum Air Temperature (in deg Celsius)',
                 'Mean Daily Relative Humidity (in percent)']:
-    pasta_de_saida = f"{base_saida}/{measure}"
-    os.makedirs(pasta_de_saida, exist_ok=True)
     df_no_nans = df[~df[measure].isna()]
-    df_no_nans['XYZ'] = df['Latitude'] + df['Longitude'] + df['Elevação (em metros)'].astype(str)
-    grouped = pd.DataFrame({
-        'whislo': df_no_nans.groupby("XYZ")[measure].min(),
-        'q1': df_no_nans.groupby("XYZ")[measure].apply(lambda data: np.quantile(data, 0.25)),
-        'med': df_no_nans.groupby("XYZ")[measure].apply(lambda data: np.quantile(data, 0.5)),
-        'q3': df_no_nans.groupby("XYZ")[measure].apply(lambda data: np.quantile(data, 0.75)),
-        'whishi': df_no_nans.groupby("XYZ")[measure].max()
-    })
-    s0, s1 = int(0.7 * grouped.shape[0]), int(0.85 * grouped.shape[0])
-    train_data, val_data, test_data = grouped.iloc[:s0], grouped.iloc[s0:s1], grouped.iloc[s1:]
-    train_data.to_csv(f"{pasta_de_saida}/train.csv")
-    val_data.to_csv(f"{pasta_de_saida}/val.csv")
-    test_data.to_csv(f"{pasta_de_saida}/test.csv")
+    for coluna_de_agrupamento in ['Latitude', 'Longitude', 'Elevação (em metros)']:
+        pasta_de_saida = f"{base_saida}/Agrupado por {coluna_de_agrupamento}/{measure}"
+        grouped = pd.DataFrame({
+            'whislo': df_no_nans.groupby(coluna_de_agrupamento)[measure].min(),
+            'q1': df_no_nans.groupby(coluna_de_agrupamento)[measure].apply(lambda data: np.quantile(data, 0.25)),
+            'med': df_no_nans.groupby(coluna_de_agrupamento)[measure].apply(lambda data: np.quantile(data, 0.5)),
+            'q3': df_no_nans.groupby(coluna_de_agrupamento)[measure].apply(lambda data: np.quantile(data, 0.75)),
+            'whishi': df_no_nans.groupby(coluna_de_agrupamento)[measure].max()
+        })
+        if grouped.shape[0] >= 1000:
+            os.makedirs(pasta_de_saida, exist_ok=True)
+            s0, s1 = int(0.7 * grouped.shape[0]), int(0.85 * grouped.shape[0])
+            train_data, val_data, test_data = grouped.iloc[:s0], grouped.iloc[s0:s1], grouped.iloc[s1:]
+            train_data.to_csv(f"{pasta_de_saida}/train.csv")
+            val_data.to_csv(f"{pasta_de_saida}/val.csv")
+            test_data.to_csv(f"{pasta_de_saida}/test.csv")
 
