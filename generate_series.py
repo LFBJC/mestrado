@@ -17,7 +17,7 @@ percentual_train_size = .75
 seeds_that_will_actually_be_used = seeds[starting_index:end_index]
 configurations = {
     # 1: random_walk, 2: logistic_map, 3: henom_map, 4: generate_stochastic_van_der_pol_series,
-    5: NAR, 6: STAR1, 7: STAR2
+    5: NAR  # , 6: STAR1, 7: STAR2
 }
 for i, seed in tqdm(enumerate(seeds_that_will_actually_be_used), total=(end_index - starting_index)):
     seed_index = starting_index + i
