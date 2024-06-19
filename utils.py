@@ -146,6 +146,7 @@ class MMRE_Loss(Loss):
             loss = tf.multiply(loss, sample_weight)
         return loss
 
+
 def random_walk(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
         begin_value = np.random.rand() # valor aleatório entre 0 e 1
@@ -154,13 +155,15 @@ def random_walk(n_samples: int = 10000, begin_value: float=None):
         out.append(out[-1] + np.random.normal())
     return out
 
+
 def logistic_map(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
-        begin_value = np.random.rand() # valor aleatório entre 0 e 1
+        begin_value = np.random.rand()  # valor aleatório entre 0 e 1
     out = [begin_value]
     for step in range(n_samples-1):
         out.append(0.7*out[-1]*(1 - out[-1]))
     return out
+
 
 def henom_map(n_samples: int = 10000, begin_value: float=None):
     if begin_value is None:
@@ -336,16 +339,19 @@ def normalize_data(inputs, targets, min_, max_):
     targets_ret = (targets_ret - min_)/(max_ - min_)
     return inputs_ret, targets_ret
 
+
 def to_ranges(x, axis=2):
     ret = x.copy()
     ret[tuple([slice(None)]*(axis) + [slice(1,None)])] -= ret[tuple([slice(None)]*(axis) + [slice(None, -1)])]
     return ret
+
 
 def from_ranges(x, axis=2):
     ret = x.copy()
     for i in range(1, ret.shape[axis]):
         ret[tuple([slice(None)]*(axis) + [i])] += ret[tuple([slice(None)]*(axis) + [i -1])]
     return ret
+
 
 def denormalize_data(inputs, min_, max_):
     ret = inputs.copy()
@@ -691,7 +697,7 @@ def list_of_lists_to_list_of_boxplots(data):
 
 def simple_partition(series, particoes):
     return [
-        series[indice_particao:int((indice_particao + 1) * len(series) / particoes)]
+        series[int(indice_particao*len(series) / particoes):int((indice_particao + 1) * len(series) / particoes)]
         for indice_particao in range(particoes)
     ]
 
