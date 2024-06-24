@@ -13,18 +13,19 @@ from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
-id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-caminho_dados_simulados_local = "E:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
+id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
+caminho_dados_simulados_local = "D:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
+
 
 def roda_var(model, val_data, lags, steps_ahead):
     relative_errors = []
     for i, row in val_data.iterrows():
         if i + lags + steps_ahead < val_data.shape[0]:
             # Fazer previsões para o próximo período
-            entrada_vale = val_data.values[i:i + lags]
-            target_vale = val_data.iloc[i + steps_ahead + lags]
-            forecast = model.forecast(entrada_vale, steps=steps_ahead)[0]
-            relative_errors.append(np.abs((target_vale - forecast) / (forecast + 0.0001)))
+            entrada_val = val_data.values[i:i + lags]
+            target_val = val_data.iloc[i + steps_ahead + lags]
+            forecast = model.forecast(entrada_val, steps=steps_ahead)[0]
+            relative_errors.append(np.abs((target_val - forecast) / (forecast + 1e-10)))
     # Calcular o MMRE
     return np.mean(relative_errors)
 
@@ -53,13 +54,14 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
             drive, id_pasta_arima, caminho_de_saida.split('/')[-1], caminho_de_saida
         )
 
+
 if __name__ == '__main__':
-    model_name = "ARIMA" # "VAR" #
-    aggregation_type = "boxplot" # only relevant for ARIMA
-    for config in [7]:
+    model_name = "ARIMA"  # "VAR"  #
+    print(f'model_name {model_name}')
+    for config in range(1, 8):
         print(f'*CONFIG {config}*')
-        # data_index = 2
-        partition_size = 100 # 360, 250, 100
+        # CONSERTAR ESTE CASO
+        partition_size = 100 # None  #
         steps_ahead_list = [1, 5, 20]
         for data_index in range(10):
             print(f'*DATA_INDEX {data_index}*')
@@ -67,12 +69,25 @@ if __name__ == '__main__':
             #     local_steps_ahead_list = [5, 20]
             # else:
             local_steps_ahead_list = steps_ahead_list
-            caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/config {config}/{aggregation_type}/particao de tamanho {partition_size}.csv"
-            pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
+            if partition_size is not None:
+                caminho_saida_drive = f"config {config}/partição de tamanho {partition_size}"
+                caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/{caminho_saida_drive}/partição de tamanho {partition_size}.csv"
+                pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
+                caminho_dados_drive = f'Dados/config {config}/{data_index}/partition size {partition_size}'
+                caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
+                train_path = f'{caminho_dados}/train.csv'
+                train_path_drive = f'{caminho_dados_drive}/train.csv'
+                partition_size_str = f'partição de tamanho {partition_size}'
+            else:
+                caminho_saida_drive = f"config {config}/Dados puros"
+                caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/{caminho_saida_drive}/VAR with raw series.csv"
+                pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
+                caminho_dados_drive = f'Dados/config {config}/{data_index}'
+                caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
+                train_path = f'{caminho_dados}/raw_train_series.csv'
+                train_path_drive = f'{caminho_dados_drive}/raw_train_series.csv'
+                partition_size_str = 'Dados puros'
             os.makedirs(pasta_saida, exist_ok=True)
-            caminho_dados_drive = f'Dados/config {config}/{data_index}/partition size {partition_size}'
-            caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
-            train_path = f'{caminho_dados}/train.csv'
             gauth = GoogleAuth()
             scope = ['https://www.googleapis.com/auth/drive']
             creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
@@ -80,7 +95,8 @@ if __name__ == '__main__':
 
             # Criação do objeto drive
             drive = GoogleDrive(gauth)
-            train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{caminho_dados_drive}/train.csv')
+            train_and_val_file = retorna_arquivo_se_existe(drive, id_pasta_base_drive, train_path_drive)
+            print(f'train_and_val_file {train_and_val_file}')
             if train_and_val_file is not None:
                 os.makedirs(caminho_dados, exist_ok=True)
                 train_and_val_file.GetContentFile(train_path)
@@ -125,14 +141,11 @@ if __name__ == '__main__':
                             q = trial.suggest_int('q', 0, 8)
                             order = (p, d, q)
                             cols_to_models = {}
-                            if aggregation_type == "median":
-                                cols_to_models["med"], resultado = arima_para_coluna('med', order)
-                            else:
-                                resultado = 0
-                                num_cols = len(train_df.columns)
-                                for col in train_df.columns:
-                                    cols_to_models[col], resultado_col = arima_para_coluna(col, order)
-                                    resultado += resultado_col/num_cols
+                            resultado = 0
+                            num_cols = len(train_df.columns)
+                            for col in train_df.columns:
+                                cols_to_models[col], resultado_col = arima_para_coluna(col, order)
+                                resultado += resultado_col/num_cols
                             try:
                                 best_value = study.best_value
                             except ValueError:
@@ -149,17 +162,17 @@ if __name__ == '__main__':
                                 # Criação do objeto drive
                                 drive = GoogleDrive(gauth)
                                 for col, model in cols_to_models.items():
-                                    os.makedirs(f"{pasta_saida}/{partition_size}", exist_ok=True)
-                                    caminho_pickle_modelo = f"{pasta_saida}/{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
+                                    os.makedirs(f"{pasta_saida}/{caminho_saida_drive}", exist_ok=True)
+                                    caminho_pickle_modelo = f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
                                     pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                                    caminho_modelo_drive = f'{partition_size}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
+                                    caminho_modelo_drive = f'{caminho_saida_drive}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
                                     cria_ou_atualiza_arquivo_no_drive(
                                         drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
                                     )
                                 salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                             return resultado
 
-                        study = optuna.create_study(direction='minimize', study_name=f'{model_name} {aggregation_type} {data_index}: c{config} s{steps_ahead} p{partition_size}')
+                        study = optuna.create_study(direction='minimize', study_name=f'{model_name} {partition_size_str} {data_index}: c{config} s{steps_ahead}')
                         study.optimize(lambda trial: objective(trial, study), n_trials=30)
             else:
                 warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")
