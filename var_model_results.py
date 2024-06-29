@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
                         def stop_on_zero(study, trial):
                             for ii, t in enumerate(study.trials):
-                                if t.value == 0:
+                                if t.value <= 1e-15:
                                     study.stop()
 
                         study = optuna.create_study(direction='minimize', study_name=f'{model_name} {partition_size_str} {data_index}: c{config} s{steps_ahead}')
