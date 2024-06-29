@@ -172,8 +172,13 @@ if __name__ == '__main__':
                                 salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
                             return resultado
 
+                        def stop_on_zero(study, trial):
+                            for ii, t in enumerate(study.trials):
+                                if t.value == 0:
+                                    study.stop()
+
                         study = optuna.create_study(direction='minimize', study_name=f'{model_name} {partition_size_str} {data_index}: c{config} s{steps_ahead}')
-                        study.optimize(lambda trial: objective(trial, study), n_trials=30)
+                        study.optimize(lambda trial: objective(trial, study), n_trials=30, callbacks=[stop_on_zero])
             else:
                 warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")
 
