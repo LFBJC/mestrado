@@ -58,15 +58,21 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 if __name__ == '__main__':
     model_name = "ARIMA"  # "VAR"  #
     print(f'model_name {model_name}')
-    for config in range(1, 8):
+    for config in range(3, 7):
         print(f'*CONFIG {config}*')
         # CONSERTAR ESTE CASO
-        partition_size = 100 # None  #
+        partition_size = 100  # None  #
         steps_ahead_list = [1, 5, 20]
-        for data_index in range(10):
+        if config == 3:
+            data_indices = list(range(7, 10))
+        elif config == 6:
+            data_indices = list(range(9))
+        else:
+            data_indices = list(range(10))
+        for data_index in data_indices:
             print(f'*DATA_INDEX {data_index}*')
-            # if data_index == 8:
-            #     local_steps_ahead_list = [5, 20]
+            # if data_index == 5 and config == 3:
+            #     local_steps_ahead_list = [20]
             # else:
             local_steps_ahead_list = steps_ahead_list
             if partition_size is not None:
