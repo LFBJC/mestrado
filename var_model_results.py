@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
-caminho_dados_simulados_local = "D:/mestrado/Pesquisa/Dados simulados" # "C:/Users/User/Desktop/mestrado Felipe" # 
+caminho_dados_simulados_local =  "C:/Users/User/Desktop/mestrado Felipe" #  "D:/mestrado/Pesquisa/Dados simulados" #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -58,7 +58,7 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 if __name__ == '__main__':
     model_name = "ARIMA"  # "VAR"  #
     print(f'model_name {model_name}')
-    for config in range(3, 7):
+    for config in range(6, 4, -1):
         print(f'*CONFIG {config}*')
         # CONSERTAR ESTE CASO
         partition_size = 100  # None  #
