@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
-caminho_dados_simulados_local = "D:/mestrado/Pesquisa/Dados simulados" # "/home/ec2-user/arquivos_mestrado/Dados simulados"
+caminho_dados_simulados_local = "D:/mestrado/Pesquisa/Dados simulados" # "C:/Users/User/Desktop/mestrado Felipe" # 
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         partition_size = 100  # None  #
         steps_ahead_list = [1, 5, 20]
         if config == 3:
-            data_indices = list(range(7, 10))
+            data_indices = list(range(8, 10))
         elif config == 6:
             data_indices = list(range(9))
         else:
