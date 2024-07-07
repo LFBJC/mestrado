@@ -14,7 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
 id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
-caminho_dados_simulados_local =  "C:/Users/User/Desktop/mestrado Felipe" #  "D:/mestrado/Pesquisa/Dados simulados" #
+caminho_dados_simulados_local = "D:/mestrado/Pesquisa/Dados simulados" # "C:/Users/User/Desktop/mestrado Felipe" #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -58,21 +58,21 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 if __name__ == '__main__':
     model_name = "ARIMA"  # "VAR"  #
     print(f'model_name {model_name}')
-    for config in range(6, 4, -1):
+    for config in range(7):
         print(f'*CONFIG {config}*')
         # CONSERTAR ESTE CASO
-        partition_size = 100  # None  #
+        partition_size = None  # 100  #
         steps_ahead_list = [1, 5, 20]
-        if config == 3:
-            data_indices = list(range(8, 10))
-        elif config == 6:
-            data_indices = list(range(9))
-        else:
-            data_indices = list(range(10))
+        # if config == 4:
+        #     data_indices = list(range(4, 10))
+        # elif config == 6:
+        #     data_indices = list(range(9))
+        # else:
+        data_indices = list(range(10))
         for data_index in data_indices:
             print(f'*DATA_INDEX {data_index}*')
-            # if data_index == 5 and config == 3:
-            #     local_steps_ahead_list = [20]
+            # if data_index == 4 and config == 4:
+            #     local_steps_ahead_list = [5, 20]
             # else:
             local_steps_ahead_list = steps_ahead_list
             if partition_size is not None:
