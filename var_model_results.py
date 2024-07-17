@@ -1,7 +1,8 @@
+import datetime
 import os
 import pickle
 import warnings
-
+from typing import Literal
 import optuna
 import pandas as pd
 import numpy as np
@@ -12,9 +13,14 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 
+tipo_de_dados: Literal["Simulados", "Reais"] = "Reais"
 id_pasta_base_drive = "1cBW25sKEV-1CKZ0Rwazf3qodb0m9GBt1"
-id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
-caminho_dados_simulados_local =  "C:/Users/User/Desktop/mestrado Felipe" #  "D:/mestrado/Pesquisa/Dados simulados" #
+if tipo_de_dados == "Simulados":
+    id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
+    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
+else:
+    id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
+    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais"
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -57,18 +63,17 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 if __name__ == '__main__':
     model_name = "ARIMA"  # "VAR"  #
+    steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
-    for config in range(6, 4, -1):
+    partition_size = None  # 100  #
+    for config in range(1, 7):
         print(f'*CONFIG {config}*')
-        # CONSERTAR ESTE CASO
-        partition_size = 100  # None  #
-        steps_ahead_list = [1, 5, 20]
-        if config == 3:
-            data_indices = list(range(8, 10))
-        elif config == 6:
-            data_indices = list(range(9))
-        else:
-            data_indices = list(range(10))
+        # if config == 4:
+        #     data_indices = list(range(4, 10))
+        # elif config == 6:
+        #     data_indices = list(range(9))
+        # else:
+        data_indices = list(range(10))
         for data_index in data_indices:
             print(f'*DATA_INDEX {data_index}*')
             # if data_index == 5 and config == 3:
@@ -77,19 +82,19 @@ if __name__ == '__main__':
             local_steps_ahead_list = steps_ahead_list
             if partition_size is not None:
                 caminho_saida_drive = f"config {config}/partição de tamanho {partition_size}"
-                caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/{caminho_saida_drive}/partição de tamanho {partition_size}.csv"
+                caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/partição de tamanho {partition_size}.csv"
                 pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
                 caminho_dados_drive = f'Dados/config {config}/{data_index}/partition size {partition_size}'
-                caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
+                caminho_dados = f'{caminho_fonte_dados_local}/{caminho_dados_drive}'
                 train_path = f'{caminho_dados}/train.csv'
                 train_path_drive = f'{caminho_dados_drive}/train.csv'
                 partition_size_str = f'partição de tamanho {partition_size}'
             else:
                 caminho_saida_drive = f"config {config}/Dados puros"
-                caminho_de_saida = f"{caminho_dados_simulados_local}/{model_name}/{caminho_saida_drive}/VAR with raw series.csv"
+                caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/VAR with raw series.csv"
                 pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
                 caminho_dados_drive = f'Dados/config {config}/{data_index}'
-                caminho_dados = f'{caminho_dados_simulados_local}/{caminho_dados_drive}'
+                caminho_dados = f'{caminho_fonte_dados_local}/{caminho_dados_drive}'
                 train_path = f'{caminho_dados}/raw_train_series.csv'
                 train_path_drive = f'{caminho_dados_drive}/raw_train_series.csv'
                 partition_size_str = 'Dados puros'
@@ -135,7 +140,9 @@ if __name__ == '__main__':
                                 for i, row in val_data.iterrows():
                                     if i > p and i + 1 + steps_ahead < val_data.shape[0]:
                                         input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
-                                        forecast = list(model_fitted.apply(input_data).forecast(steps_ahead))[-1]
+                                        t0 = datetime.datetime.now()
+                                        forecast = list(model_fitted.extend(input_data).forecast(steps_ahead))[-1]
+                                        print(datetime.datetime.now() - t0)
                                         relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
                                 return model_fitted, np.mean(relative_errors_val)
                             except:
