@@ -76,8 +76,8 @@ if __name__ == '__main__':
         data_indices = list(range(10))
         for data_index in data_indices:
             print(f'*DATA_INDEX {data_index}*')
-            # if data_index == 5 and config == 3:
-            #     local_steps_ahead_list = [20]
+            # if data_index == 4 and config == 4:
+            #     local_steps_ahead_list = [5, 20]
             # else:
             local_steps_ahead_list = steps_ahead_list
             if partition_size is not None:
