@@ -6,6 +6,7 @@ from typing import Literal
 import optuna
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 from statsmodels.tsa.api import VAR, ARIMA
 from utils import plot_single_box_plot_series, plot_multiple_box_plot_series, cria_ou_atualiza_arquivo_no_drive, \
     retorna_arquivo_se_existe
@@ -19,8 +20,8 @@ if tipo_de_dados == "Simulados":
     id_pasta_arima = "1vZHX9FNmRHSfDyklS473sqgNXXiygwB6"
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
-    id_pasta_arima = "1gJplBlGG7U1LNQmMIngJMkNymPNEZQKk"
-    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais"
+    id_pasta_arima = "1CPw6H8WUijzisrF1GjVk_xnGlHkZ2-KM"
+    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "D:/mestrado/Pesquisa/Dados reais" #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -66,20 +67,24 @@ if __name__ == '__main__':
     steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
     partition_size = None  # 100  #
-    for config in range(1, 7):
-        print(f'*CONFIG {config}*')
-        # if config == 4:
-        #     data_indices = list(range(4, 10))
-        # elif config == 6:
-        #     data_indices = list(range(9))
-        # else:
-        data_indices = list(range(10))
-        for data_index in data_indices:
-            print(f'*DATA_INDEX {data_index}*')
-            # if data_index == 4 and config == 4:
-            #     local_steps_ahead_list = [5, 20]
+    if tipo_de_dados == "Simulados":
+        pastas_entrada = []
+        for config in range(1, 7):
+            # if config == 4:
+            #     data_indices = list(range(4, 10))
+            # elif config == 6:
+            #     data_indices = list(range(9))
             # else:
-            local_steps_ahead_list = steps_ahead_list
+            data_indices = list(range(10))
+            for data_index in data_indices:
+                pastas_entrada.append(f"config {config}/partição de tamanho {partition_size}/{data_index}")
+    else:
+        pastas_entrada = ["demanda energética - kaggle"]
+    for pasta_entrada in pastas_entrada:
+        local_steps_ahead_list = steps_ahead_list
+        if tipo_de_dados == "Simulados":
+            config = pasta_entrada.split('/')[0].replace('config ', '')
+            data_index = pasta_entrada.split('/')[-1]
             if partition_size is not None:
                 caminho_saida_drive = f"config {config}/partição de tamanho {partition_size}"
                 caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/partição de tamanho {partition_size}.csv"
@@ -91,14 +96,12 @@ if __name__ == '__main__':
                 partition_size_str = f'partição de tamanho {partition_size}'
             else:
                 caminho_saida_drive = f"config {config}/Dados puros"
-                caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/VAR with raw series.csv"
+                caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/{model_name} with raw series.csv"
                 pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
                 caminho_dados_drive = f'Dados/config {config}/{data_index}'
-                caminho_dados = f'{caminho_fonte_dados_local}/{caminho_dados_drive}'
                 train_path = f'{caminho_dados}/raw_train_series.csv'
                 train_path_drive = f'{caminho_dados_drive}/raw_train_series.csv'
                 partition_size_str = 'Dados puros'
-            os.makedirs(pasta_saida, exist_ok=True)
             gauth = GoogleAuth()
             scope = ['https://www.googleapis.com/auth/drive']
             creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
@@ -112,86 +115,126 @@ if __name__ == '__main__':
                 os.makedirs(caminho_dados, exist_ok=True)
                 train_and_val_file.GetContentFile(train_path)
                 train_df = pd.read_csv(train_path)
-                train_df, val_df = train_df.iloc[:int(2/3*train_df.shape[0])].reset_index(drop=True), train_df.iloc[int(2/3*train_df.shape[0]):].reset_index(drop=True)
-                for steps_ahead in local_steps_ahead_list:
-                    print(f'*STEPS {steps_ahead}*')
-                    best_error = np.inf
-                    best_params = None
-                    if model_name == "VAR":
-                        for lags in range(1, 10):
-                            model = VAR(train_df)
-                            model_fitted = model.fit(maxlags=lags)
-                            resultado = roda_var(model_fitted, val_df, lags, steps_ahead)
-                            if resultado < best_error:
-                                print(lags)
-                                print(resultado, best_error)
-                                best_error = resultado
-                                best_params = lags
-                                pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}.pkl", 'wb'))
-                                salva(None, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
-                    else:
-                        def arima_para_coluna(coluna, order):
-                            try:
-                                model = ARIMA(train_df[coluna].values, order=order)
-                                p, d, q = order
-                                model_fitted = model.fit()
-                                val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
-                                relative_errors_val = []
-                                for i, row in val_data.iterrows():
-                                    if i > p and i + 1 + steps_ahead < val_data.shape[0]:
-                                        input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
-                                        t0 = datetime.datetime.now()
-                                        forecast = list(model_fitted.extend(input_data).forecast(steps_ahead))[-1]
-                                        print(datetime.datetime.now() - t0)
-                                        relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
-                                return model_fitted, np.mean(relative_errors_val)
-                            except:
-                                return None, np.inf
-
-                        def objective(trial, study):
-                            p = trial.suggest_int('p', 1, 10)
-                            d = trial.suggest_int('d', 0, 2)
-                            q = trial.suggest_int('q', 0, 8)
-                            order = (p, d, q)
-                            cols_to_models = {}
-                            resultado = 0
-                            num_cols = len(train_df.columns)
-                            for col in train_df.columns:
-                                cols_to_models[col], resultado_col = arima_para_coluna(col, order)
-                                resultado += resultado_col/num_cols
-                            try:
-                                best_value = study.best_value
-                            except ValueError:
-                                best_value = np.inf
-                            if resultado < best_value:
-                                best_error = resultado
-                                best_params = (p, d, q)
-                                # Autenticação
-                                gauth = GoogleAuth()
-                                scope = ['https://www.googleapis.com/auth/drive']
-                                creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
-                                gauth.credentials = creds
-
-                                # Criação do objeto drive
-                                drive = GoogleDrive(gauth)
-                                for col, model in cols_to_models.items():
-                                    os.makedirs(f"{pasta_saida}/{caminho_saida_drive}", exist_ok=True)
-                                    caminho_pickle_modelo = f"{pasta_saida}/bestModel_{data_index}_{steps_ahead}_{col}.pkl"
-                                    pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                                    caminho_modelo_drive = f'{caminho_saida_drive}/bestModel_{data_index}_{steps_ahead}_{col}.pkl'
-                                    cria_ou_atualiza_arquivo_no_drive(
-                                        drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
-                                    )
-                                salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params)
-                            return resultado
-
-                        def stop_on_zero(study, trial):
-                            for ii, t in enumerate(study.trials):
-                                if t.value <= 1e-15:
-                                    study.stop()
-
-                        study = optuna.create_study(direction='minimize', study_name=f'{model_name} {partition_size_str} {data_index}: c{config} s{steps_ahead}')
-                        study.optimize(lambda trial: objective(trial, study), n_trials=30, callbacks=[stop_on_zero])
+                splitting_point = int(2 / 3 * train_df.shape[0])
+                val_df = train_df.iloc[splitting_point:].reset_index(drop=True)
+                train_df = train_df.iloc[:splitting_point].reset_index(drop=True)
+        else:
+            caminho_saida_drive = pasta_entrada
+            caminho_de_saida = f"{caminho_fonte_dados_local}/{model_name}/{caminho_saida_drive}/resultados.csv"
+            pasta_saida = '/'.join(caminho_de_saida.replace('\\', '/').split('/')[:-1])
+            if partition_size is None:
+                caminho_dados_drive = f'Dados tratados/{pasta_entrada}/sem agrupamento'
             else:
-                warnings.warn(f"OS DADOS DE ENTRADA DE ÍNDICE {data_index} NÃO FORAM ENCONTRADOS!")
+                caminho_dados_drive = f'Dados tratados/{pasta_entrada}/agrupado em boxplots'
+            caminho_dados = f'{caminho_fonte_dados_local}/{caminho_dados_drive}'
+            train_path = f'{caminho_dados}/train.csv'
+            val_path = f'{caminho_dados}/val.csv'
+            train_df = pd.read_csv(train_path)
+            val_df = pd.read_csv(val_path)
+            if partition_size is None:
+                train_df = train_df[["TOTALDEMAND"]]
+                val_df = val_df[["TOTALDEMAND"]]
+            else:
+                train_df = train_df[[c for c in train_df.columns if train_df[c].dtype in ['float64', 'float32', 'int64', 'int32']]]
+                val_df = val_df[[c for c in val_df.columns if val_df[c].dtype in ['float64', 'float32', 'int64', 'int32']]]
+        os.makedirs(pasta_saida, exist_ok=True)
+        for steps_ahead in local_steps_ahead_list:
+            print(f'*STEPS {steps_ahead}*')
+            best_error = np.inf
+            best_params = None
+            if model_name == "VAR":
+                for lags in range(1, 10):
+                    model = VAR(train_df)
+                    model_fitted = model.fit(maxlags=lags)
+                    resultado = roda_var(model_fitted, val_df, lags, steps_ahead)
+                    if resultado < best_error:
+                        print(lags)
+                        print(resultado, best_error)
+                        best_error = resultado
+                        best_params = lags
+                        pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}.pkl", 'wb'))
+
+                        gauth = GoogleAuth()
+                        scope = ['https://www.googleapis.com/auth/drive']
+                        creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                        gauth.credentials = creds
+
+                        # Criação do objeto drive
+                        drive = GoogleDrive(gauth)
+
+                        if tipo_de_dados == "Simulados":
+                            salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params, params_column_name='lags')
+                        # else:
+                        #     salva(drive, caminho_de_saida, pasta_entrada, steps_ahead, best_error, best_params,
+                        #           params_column_name='lags')
+            else:
+                def arima_para_coluna(coluna, order):
+                    try:
+                        model = ARIMA(train_df[coluna].values, order=order)
+                        p, d, q = order
+                        model_fitted = model.fit()
+                        val_data = pd.DataFrame.from_records({coluna: val_df[coluna].values}).reset_index(drop=True)
+                        relative_errors_val = []
+                        for i, row in tqdm(val_data.iterrows(), total=val_data.shape[0]):
+                            if i > p and i + 1 + steps_ahead < val_data.shape[0]:
+                                input_data, target = val_data.iloc[:i + 1], val_data.iloc[i + 1 + steps_ahead]
+                                # t0 = datetime.datetime.now()
+                                forecast = list(model_fitted.extend(input_data).forecast(steps_ahead))[-1]
+                                # print(datetime.datetime.now() - t0)
+                                relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
+                        return model_fitted, np.mean(relative_errors_val)
+                    except:
+                        import traceback
+                        print(traceback.format_exc())
+                        return None, np.inf
+
+                def objective(trial, study):
+                    p = trial.suggest_int('p', 1, 10)
+                    d = trial.suggest_int('d', 0, 2)
+                    q = trial.suggest_int('q', 0, 8)
+                    order = (p, d, q)
+                    cols_to_models = {}
+                    resultado = 0
+                    num_cols = len(train_df.columns)
+                    for col in train_df.columns:
+                        cols_to_models[col], resultado_col = arima_para_coluna(col, order)
+                        resultado += resultado_col/num_cols
+                    try:
+                        best_value = study.best_value
+                    except ValueError:
+                        best_value = np.inf
+                    if resultado < best_value:
+                        best_error = resultado
+                        best_params = (p, d, q)
+                        # Autenticação
+                        gauth = GoogleAuth()
+                        scope = ['https://www.googleapis.com/auth/drive']
+                        creds = ServiceAccountCredentials.from_json_keyfile_name('conta-de-servico.json', scope)
+                        gauth.credentials = creds
+
+                        # Criação do objeto drive
+                        drive = GoogleDrive(gauth)
+                        for col, model in cols_to_models.items():
+                            os.makedirs(f"{pasta_saida}/{caminho_saida_drive}", exist_ok=True)
+                            caminho_pickle_modelo = f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
+                            pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
+                            caminho_modelo_drive = f"{caminho_saida_drive}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
+                            cria_ou_atualiza_arquivo_no_drive(
+                                drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
+                            )
+                        if tipo_de_dados == "Simulados":
+                            salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params,
+                                  params_column_name='lags')
+                        # else:
+                        #     salva(drive, caminho_de_saida, pasta_entrada, steps_ahead, best_error, best_params,
+                        #           params_column_name='lags')
+                    return resultado
+
+                def stop_on_zero(study, trial):
+                    for ii, t in enumerate(study.trials):
+                        if t.value <= 1e-15:
+                            study.stop()
+
+                study = optuna.create_study(direction='minimize', study_name=f'{model_name} {pasta_entrada}')
+                study.optimize(lambda trial: objective(trial, study), n_trials=30, callbacks=[stop_on_zero])
 
