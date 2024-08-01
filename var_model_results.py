@@ -21,7 +21,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_arima = "1CPw6H8WUijzisrF1GjVk_xnGlHkZ2-KM"
-    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "D:/mestrado/Pesquisa/Dados reais" #
+    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -213,15 +213,15 @@ if __name__ == '__main__':
                         gauth.credentials = creds
 
                         # Criação do objeto drive
-                        drive = GoogleDrive(gauth)
+                        # drive = GoogleDrive(gauth)
                         for col, model in cols_to_models.items():
                             os.makedirs(f"{pasta_saida}/{caminho_saida_drive}", exist_ok=True)
                             caminho_pickle_modelo = f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
                             pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                            caminho_modelo_drive = f"{caminho_saida_drive}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
-                            cria_ou_atualiza_arquivo_no_drive(
-                                drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
-                            )
+                            # caminho_modelo_drive = f"{caminho_saida_drive}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
+                            # cria_ou_atualiza_arquivo_no_drive(
+                            #     drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
+                            # )
                         if tipo_de_dados == "Simulados":
                             salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params,
                                   params_column_name='lags')
