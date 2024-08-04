@@ -275,6 +275,12 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 
 
 aggregation_type = 'boxplot' # 'median' #
+cols_alvo = {
+        "cafe": "money",
+        "beijing": "pm2.5",
+        "Amazon": "Volume",
+        "Netflix": "Volume"
+    }
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
 objective_by_model_type = {
@@ -290,7 +296,7 @@ for partition_size in [None]:  # [100, None]:
             for data_index in data_indices:
                 pastas_entrada.append(f"config {config}/partição de tamanho {partition_size}/{data_index}")
     else:
-        pastas_entrada = ["demanda energética - kaggle"]
+        pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
         local_steps_ahead = steps_ahead_list
         if tipo_de_dados == "Simulados":
@@ -363,8 +369,8 @@ for partition_size in [None]:  # [100, None]:
                     train_data = pd.read_csv(f"{pasta_dados}/{train_file_name}")
                     val_data = pd.read_csv(f"{pasta_dados}/{val_file_name}")
                     if partition_size is None:
-                        train_data = train_data[["TOTALDEMAND"]]
-                        val_data = val_data[["TOTALDEMAND"]]
+                        train_data = train_data[[cols_alvo.get(pasta_entrada)]]
+                        val_data = val_data[[cols_alvo.get(pasta_entrada)]]
                     else:
                         train_data = train_data[["whislo", "q1", "med", "q3", "whishi"]]
                         val_data = val_data[["whislo", "q1", "med", "q3", "whishi"]]
