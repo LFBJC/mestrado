@@ -22,20 +22,16 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais"  # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "D:/mestrado/Pesquisa/Dados reais" #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
-    print(len(train_data))
-    print(train_data[0])
-    print(len(val_data))
+    available_kernel_sizes = [(2, 2), (3, 2)]
     if isinstance(train_data[0], dict):
         out_size = len(train_data[0].keys())
-        available_kernel_sizes = [(2, 2), (3, 2)]
     else:
-        available_kernel_sizes = [(2, 1), (3, 1)]
-        out_size = 1
+        out_size = len(train_data[0])
     print(f'OUT SIZE: {out_size}')
     win_size = trial.suggest_int('win_size', 10, len(train_data)//10)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 2, 10)
@@ -68,7 +64,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     X, Y = images_and_targets_from_data_series(
         train_data, input_win_size=win_size, steps_ahead=steps_ahead
     )
-    if out_size > 1:
+    if isinstance(train_data[0], dict):
         train_data_array = np.array([list(x.values()) for x in train_data])
     else:
         train_data_array = np.array(train_data)
@@ -287,8 +283,8 @@ objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "LSTM"
-for partition_size in [None]:  # [100, None]:
+model_type = "CNN"
+for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
@@ -463,5 +459,8 @@ for partition_size in [None]:  # [100, None]:
                         )
                         study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
                                        n_trials=n_trials - opt_hist_df.shape[0])
+with open(f"C:/Users/User/Desktop/mestrado Felipe/TERMINOU.txt", "w") as termino_arquivo:
+    termino_arquivo.write("TERMINOU!")
+os.system('shutdown /s')
 # c7 8s1
 # c6 8s1
