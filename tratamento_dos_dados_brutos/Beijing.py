@@ -5,6 +5,7 @@ import numpy as np
 pasta_dos_dados = "D:/mestrado/Pesquisa/Dados reais/Dados brutos/NOVOS CONJUNTOS/beijing/PM2.5/"
 pasta_de_saida = "D:/mestrado/Pesquisa/Dados reais/Dados tratados/beijing"
 df = pd.read_csv(f"{pasta_dos_dados}/data.csv")
+df = df[~pd.isna(df["pm2.5"])]
 s0, s1 = int(0.7*df.shape[0]), int(0.85*df.shape[0])
 train_data, val_data, test_data = df.iloc[:s0], df.iloc[s0:s1], df.iloc[s1:]
 os.makedirs(f"{pasta_de_saida}/sem agrupamento", exist_ok=True)
