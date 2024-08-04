@@ -320,7 +320,7 @@ def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1
     if isinstance(data[0], dict):
         data = list(map(lambda x: list(x.values()), data))
     else:
-        data = [[x] for x in data]
+        data = [x for x in data]
     images = []
     all_targets = []
     for i in range(len(data)-1-steps_ahead-input_win_size):
