@@ -21,7 +21,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_arima = "1CPw6H8WUijzisrF1GjVk_xnGlHkZ2-KM"
-    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "D:/mestrado/Pesquisa/Dados reais" #
+    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -64,6 +64,12 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 if __name__ == '__main__':
     model_name = "ARIMA"  # "VAR"  #
+    cols_alvo = {
+        "cafe": "money",
+        "beijing": "pm2.5",
+        "Amazon": "Volume",
+        "Netflix": "Volume"
+    }
     steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
     partition_size = None  # 100  #
@@ -79,7 +85,7 @@ if __name__ == '__main__':
             for data_index in data_indices:
                 pastas_entrada.append(f"config {config}/partição de tamanho {partition_size}/{data_index}")
     else:
-        pastas_entrada = ["demanda energética - kaggle"]
+        pastas_entrada = ["beijing", "Amazon", "Netflix"]  # ["demanda energética - kaggle", "cafe", ]
     for pasta_entrada in pastas_entrada:
         local_steps_ahead_list = steps_ahead_list
         if tipo_de_dados == "Simulados":
@@ -132,8 +138,8 @@ if __name__ == '__main__':
             train_df = pd.read_csv(train_path)
             val_df = pd.read_csv(val_path)
             if partition_size is None:
-                train_df = train_df[["TOTALDEMAND"]]
-                val_df = val_df[["TOTALDEMAND"]]
+                train_df = train_df[[cols_alvo.get(pasta_entrada)]]
+                val_df = val_df[[cols_alvo.get(pasta_entrada)]]
             else:
                 train_df = train_df[[c for c in train_df.columns if train_df[c].dtype in ['float64', 'float32', 'int64', 'int32']]]
                 val_df = val_df[[c for c in val_df.columns if val_df[c].dtype in ['float64', 'float32', 'int64', 'int32']]]
@@ -181,7 +187,7 @@ if __name__ == '__main__':
                                 # t0 = datetime.datetime.now()
                                 forecast = list(model_fitted.extend(input_data).forecast(steps_ahead))[-1]
                                 # print(datetime.datetime.now() - t0)
-                                relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)))
+                                relative_errors_val.append(np.abs((target - forecast) / (forecast + 0.0001)).iloc[0])
                         return model_fitted, np.mean(relative_errors_val)
                     except:
                         import traceback
@@ -213,26 +219,28 @@ if __name__ == '__main__':
                         gauth.credentials = creds
 
                         # Criação do objeto drive
-                        drive = GoogleDrive(gauth)
+                        # drive = GoogleDrive(gauth)
                         for col, model in cols_to_models.items():
                             os.makedirs(f"{pasta_saida}/{caminho_saida_drive}", exist_ok=True)
                             caminho_pickle_modelo = f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
                             pickle.dump(model, open(caminho_pickle_modelo, 'wb'))
-                            caminho_modelo_drive = f"{caminho_saida_drive}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
-                            cria_ou_atualiza_arquivo_no_drive(
-                                drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
-                            )
+                            # caminho_modelo_drive = f"{caminho_saida_drive}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{col}.pkl"
+                            # cria_ou_atualiza_arquivo_no_drive(
+                            #     drive, id_pasta_arima, caminho_modelo_drive, caminho_pickle_modelo
+                            # )
                         if tipo_de_dados == "Simulados":
                             salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_params,
                                   params_column_name='lags')
                         # else:
                         #     salva(drive, caminho_de_saida, pasta_entrada, steps_ahead, best_error, best_params,
                         #           params_column_name='lags')
+                    if isinstance(resultado, np.float64) or isinstance(resultado, np.float32):
+                        resultado = float(resultado)
                     return resultado
 
                 def stop_on_zero(study, trial):
                     for ii, t in enumerate(study.trials):
-                        if t.value <= 1e-15:
+                        if isinstance(t.value, float) and t.value <= 1e-15:
                             study.stop()
 
                 study = optuna.create_study(direction='minimize', study_name=f'{model_name} {pasta_entrada}')
