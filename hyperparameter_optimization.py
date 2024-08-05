@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "D:/mestrado/Pesquisa/Dados reais" #
+    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -170,7 +170,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
 
 def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
-    win_size = trial.suggest_int('win_size', 10, min(len(train_data) // 10, 13000))
+    win_size = trial.suggest_int('win_size', 10, min((len(train_data) - win_size - steps_ahead) // 10, 13000))
     if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in train_data])
     else:
@@ -283,7 +283,7 @@ objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "CNN"
+model_type = "LSTM"
 for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
@@ -294,7 +294,10 @@ for partition_size in [100]:  # [100, None]:
     else:
         pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
-        local_steps_ahead = steps_ahead_list
+        if pasta_entrada == "cafe":
+            local_steps_ahead = [20]
+        else:
+            local_steps_ahead = steps_ahead_list
         if tipo_de_dados == "Simulados":
             val_file_name = ''
             if partition_size is not None:
@@ -307,9 +310,9 @@ for partition_size in [100]:  # [100, None]:
             saida_complemento = f"Saída da otimização de hiperparâmetros {model_type} conf{config}/{aggregation_type}/{data_set_index}"
         else:
             if partition_size is not None:
-                caminho_dados_drive = f"Dados tratados/demanda energética - kaggle/agrupado em boxplots"
+                caminho_dados_drive = f"Dados tratados/{pasta_entrada}/agrupado em boxplots"
             else:
-                caminho_dados_drive = f"Dados tratados/demanda energética - kaggle/sem agrupamento"
+                caminho_dados_drive = f"Dados tratados/{pasta_entrada}/sem agrupamento"
             train_file_name = 'train.csv'
             val_file_name = 'val.csv'
             saida_complemento = f"{model_type}/Saída da otimização de hiperparâmetros/{pasta_entrada}"
