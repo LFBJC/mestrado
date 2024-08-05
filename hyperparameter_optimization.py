@@ -170,7 +170,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
 
 def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
-    win_size = trial.suggest_int('win_size', 10, min((len(train_data) - win_size - steps_ahead) // 10, 13000))
+    win_size = trial.suggest_int('win_size', 10, min((len(train_data) - steps_ahead) // 10, 13000))
     if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in train_data])
     else:
