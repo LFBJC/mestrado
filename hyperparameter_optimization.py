@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/lfbjc/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -33,7 +33,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     else:
         out_size = len(train_data[0])
     print(f'OUT SIZE: {out_size}')
-    win_size = trial.suggest_int('win_size', 10, len(train_data)//10)
+    win_size = trial.suggest_int('win_size', 10, min(len(train_data)//10, 13000))
     filters_conv_1 = trial.suggest_int('filters_conv_1', 2, 10)
     kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', available_kernel_sizes)
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
@@ -170,7 +170,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
 
 def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
-    win_size = trial.suggest_int('win_size', 10, min((len(train_data) - steps_ahead) // 10, 13000))
+    win_size = trial.suggest_int('win_size', 10, min(len(train_data) // 10, 13000))
     if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in train_data])
     else:
@@ -266,18 +266,19 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         opt_hist_df = pd.DataFrame.from_records([{**trial.params, 'score': error}])
     opt_hist_df.to_csv(hist_path, index=False)
     hist_path_drive = f'{caminho_interno}/opt_hist.csv'
-    cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
+    # cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, hist_path_drive, hist_path)
     return error
 
 
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
-        "cafe": "money",
-        "beijing": "pm2.5",
-        "Amazon": "Volume",
-        "Netflix": "Volume"
-    }
-steps_ahead_list = [1, 5, 20]
+    # "demanda energética - kaggle": "TOTALDEMAND",
+    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    "WIND POWER GERMANY": "MW",
+    "cafe": "money",
+    "beijing": "pm2.5",
+}
+steps_ahead_list = [20, 5, 1]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
@@ -294,10 +295,10 @@ for partition_size in [100]:  # [100, None]:
     else:
         pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
-        if pasta_entrada == "cafe":
-            local_steps_ahead = [20]
-        else:
-            local_steps_ahead = steps_ahead_list
+        # if pasta_entrada == "demanda energética - kaggle":
+        #     local_steps_ahead = [20]
+        # else:
+        local_steps_ahead = steps_ahead_list
         if tipo_de_dados == "Simulados":
             val_file_name = ''
             if partition_size is not None:
@@ -462,8 +463,8 @@ for partition_size in [100]:  # [100, None]:
                         )
                         study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
                                        n_trials=n_trials - opt_hist_df.shape[0])
-with open(f"C:/Users/User/Desktop/mestrado Felipe/TERMINOU.txt", "w") as termino_arquivo:
-    termino_arquivo.write("TERMINOU!")
-os.system('shutdown /s')
+# with open(f"C:/Users/User/Desktop/mestrado Felipe/TERMINOU.txt", "w") as termino_arquivo:
+#     termino_arquivo.write("TERMINOU!")
+# os.system('shutdown /s')
 # c7 8s1
 # c6 8s1
