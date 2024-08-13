@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/lfbjc/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/lfbjc/Desktop/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -273,10 +273,10 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
+    # "cafe": "money",
+    # "beijing": "pm2.5",
     "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
-    "cafe": "money",
-    "beijing": "pm2.5",
 }
 steps_ahead_list = [20, 5, 1]
 n_trials = 100
@@ -285,7 +285,7 @@ objective_by_model_type = {
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [100]:  # [100, None]:
+for partition_size in [None]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
@@ -463,8 +463,8 @@ for partition_size in [100]:  # [100, None]:
                         )
                         study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
                                        n_trials=n_trials - opt_hist_df.shape[0])
-# with open(f"C:/Users/User/Desktop/mestrado Felipe/TERMINOU.txt", "w") as termino_arquivo:
-#     termino_arquivo.write("TERMINOU!")
-# os.system('shutdown /s')
+with open(f"{caminho_fonte_dados_local}/TERMINOU.txt", "w") as termino_arquivo:
+    termino_arquivo.write("TERMINOU!")
+os.system('shutdown /s')
 # c7 8s1
 # c6 8s1
