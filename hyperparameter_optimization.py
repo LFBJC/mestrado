@@ -275,17 +275,17 @@ cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
     # "cafe": "money",
     # "beijing": "pm2.5",
-    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [20, 5, 1]
+steps_ahead_list = [1]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [None]:  # [100, None]:
+for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
