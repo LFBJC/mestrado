@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import optuna
 import numpy as np
 import pandas as pd
-from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_targets_from_data_series,\
-    plot_multiple_box_plot_series, plot_single_box_plot_series, normalize_data, to_ranges, from_ranges, \
-    denormalize_data, cria_ou_atualiza_arquivo_no_drive, retorna_arquivo_se_existe
+from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_targets_from_data_series
+from utils import plot_multiple_box_plot_series, plot_single_box_plot_series, normalize_data, to_ranges, from_ranges
+from utils import denormalize_data, cria_ou_atualiza_arquivo_no_drive, retorna_arquivo_se_existe
 from tqdm import tqdm
 from typing import Literal
 import tensorflow as tf
@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/lfbjc/Desktop/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/lfbjc/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -44,7 +44,6 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     h2 = (5 - kernel_size_conv_1[0]) - pool_size_1[1] + 2
     # w3 = (w2 - pool_size_1[0])//pool_size_1[0] + 1
     # kernel_size_conv_2 = trial.suggest_categorical('kernel_size_conv_2', available_kernel_sizes)
-    # print(f'w3: {w3}\nkernel conv 2: {kernel_size_conv_2}')
     # w4 = (w3 - kernel_size_conv_2[0]) + 1
     # h4 = (7 - kernel_size_conv_1[1] - pool_size_1[1])//pool_size_1[1] - kernel_size_conv_2[1] + 1
     # activation_conv_2 = trial.suggest_categorical('activation_conv_2',
@@ -275,17 +274,17 @@ cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
     # "cafe": "money",
     # "beijing": "pm2.5",
-    # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-    "WIND POWER GERMANY": "MW",
+    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    # "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [1]
+steps_ahead_list = [20, 5, 1]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [100]:  # [100, None]:
+for partition_size in [None]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
@@ -312,11 +311,12 @@ for partition_size in [100]:  # [100, None]:
         else:
             if partition_size is not None:
                 caminho_dados_drive = f"Dados tratados/{pasta_entrada}/agrupado em boxplots"
+                saida_complemento = f"{model_type}/Saída da otimização de hiperparâmetros/com boxplot/{pasta_entrada}"
             else:
                 caminho_dados_drive = f"Dados tratados/{pasta_entrada}/sem agrupamento"
+                saida_complemento = f"{model_type}/Saída da otimização de hiperparâmetros/sem agrupamento/{pasta_entrada}"
             train_file_name = 'train.csv'
             val_file_name = 'val.csv'
-            saida_complemento = f"{model_type}/Saída da otimização de hiperparâmetros/{pasta_entrada}"
 
         caminho_de_saida = f"{caminho_fonte_dados_local}/{saida_complemento}"
         objective = objective_by_model_type[model_type]
@@ -385,7 +385,7 @@ for partition_size in [100]:  # [100, None]:
                 objective_kwargs['study'] = study
                 opt_hist_file_drive = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
                 if opt_hist_file_drive is None:
-                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
+                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials, n_jobs=-1)
                 else:
                     opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
                     opt_hist_df = pd.read_csv(f'{caminho_completo_saida}/opt_hist.csv')
@@ -463,8 +463,8 @@ for partition_size in [100]:  # [100, None]:
                         )
                         study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
                                        n_trials=n_trials - opt_hist_df.shape[0])
-with open(f"{caminho_fonte_dados_local}/TERMINOU.txt", "w") as termino_arquivo:
-    termino_arquivo.write("TERMINOU!")
-os.system('shutdown /s')
+# with open(f"{caminho_fonte_dados_local}/TERMINOU.txt", "w") as termino_arquivo:
+#     termino_arquivo.write("TERMINOU!")
+# os.system('shutdown /s')
 # c7 8s1
 # c6 8s1
