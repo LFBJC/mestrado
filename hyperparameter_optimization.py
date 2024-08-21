@@ -274,8 +274,8 @@ cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
     # "cafe": "money",
     # "beijing": "pm2.5",
-    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-    # "WIND POWER GERMANY": "MW",
+    # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    "WIND POWER GERMANY": "MW",
 }
 steps_ahead_list = [20, 5, 1]
 n_trials = 100
@@ -284,7 +284,7 @@ objective_by_model_type = {
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [None]:  # [100, None]:
+for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
@@ -294,10 +294,10 @@ for partition_size in [None]:  # [100, None]:
     else:
         pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
-        # if pasta_entrada == "demanda energética - kaggle":
-        #     local_steps_ahead = [20]
-        # else:
-        local_steps_ahead = steps_ahead_list
+        if pasta_entrada == "cafe":
+            local_steps_ahead = [5, 1]
+        else:
+            local_steps_ahead = steps_ahead_list
         if tipo_de_dados == "Simulados":
             val_file_name = ''
             if partition_size is not None:
@@ -385,7 +385,7 @@ for partition_size in [None]:  # [100, None]:
                 objective_kwargs['study'] = study
                 opt_hist_file_drive = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
                 if opt_hist_file_drive is None:
-                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials, n_jobs=-1)
+                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
                 else:
                     opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
                     opt_hist_df = pd.read_csv(f'{caminho_completo_saida}/opt_hist.csv')
