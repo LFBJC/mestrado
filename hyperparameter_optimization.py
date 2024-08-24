@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/lfbjc/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "C:/mestrado/Dados reais" #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -271,10 +271,10 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
-    # "demanda energética - kaggle": "TOTALDEMAND",
-    # "cafe": "money",
-    # "beijing": "pm2.5",
-    # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    "demanda energética - kaggle": "TOTALDEMAND",
+    "cafe": "money",
+    "beijing": "pm2.5",
+    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
 }
 steps_ahead_list = [20, 5, 1]
@@ -283,7 +283,7 @@ objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "LSTM"
+model_type = "CNN"
 for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
@@ -294,7 +294,7 @@ for partition_size in [100]:  # [100, None]:
     else:
         pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
-        if pasta_entrada == "cafe":
+        if pasta_entrada == "demanda energética - kaggle":
             local_steps_ahead = [5, 1]
         else:
             local_steps_ahead = steps_ahead_list
