@@ -26,72 +26,51 @@ np_config.enable_numpy_behavior()
 
 
 def cria_ou_atualiza_arquivo_no_drive(drive, id_pasta, caminho_arquivo_drive, caminho_local_arquivo):
-    caminho_arquivo_drive = caminho_arquivo_drive.replace('\\', '/')
-    if '/' in caminho_arquivo_drive:
-        parent_id = cria_caminho_no_drive(drive, id_pasta, '/'.join(caminho_arquivo_drive.split('/')[:-1]))
-        nome_arquivo = caminho_arquivo_drive.split('/')[-1]
-    else:
-        parent_id = id_pasta
-        nome_arquivo = caminho_arquivo_drive
-    file_list = drive.ListFile({'q': f"'{parent_id}' in parents and trashed=false"}).GetList()
-    file_exists = False
-    existing_file_id = None
-    for file in file_list:
-        if file['title'] == nome_arquivo:
-            file_exists = True
-            existing_file_id = file['id']
-            break
+    try:
+        caminho_arquivo_drive = caminho_arquivo_drive.replace('\\', '/')
+        if '/' in caminho_arquivo_drive:
+            parent_id = cria_caminho_no_drive(drive, id_pasta, '/'.join(caminho_arquivo_drive.split('/')[:-1]))
+            nome_arquivo = caminho_arquivo_drive.split('/')[-1]
+        else:
+            parent_id = id_pasta
+            nome_arquivo = caminho_arquivo_drive
+        file_list = drive.ListFile({'q': f"'{parent_id}' in parents and trashed=false"}).GetList()
+        file_exists = False
+        existing_file_id = None
+        for file in file_list:
+            if file['title'] == nome_arquivo:
+                file_exists = True
+                existing_file_id = file['id']
+                break
 
-    if file_exists:
-        # Se o arquivo existe, atualiza o conteúdo
-        file = drive.CreateFile({'id': existing_file_id})
-    else:
-        # Se o arquivo não existe, cria um novo arquivo
-        file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": parent_id}]})
+        if file_exists:
+            # Se o arquivo existe, atualiza o conteúdo
+            file = drive.CreateFile({'id': existing_file_id})
+        else:
+            # Se o arquivo não existe, cria um novo arquivo
+            file = drive.CreateFile({"parents": [{"kind": "drive#fileLink", "id": parent_id}]})
 
-    # Define o conteúdo do arquivo
-    file.SetContentFile(caminho_local_arquivo)
+        # Define o conteúdo do arquivo
+        file.SetContentFile(caminho_local_arquivo)
 
-    # Faz o upload ou atualização para o Drive
-    file.Upload()
+        # Faz o upload ou atualização para o Drive
+        file.Upload()
+    except:
+        pass
 
 
 def cria_caminho_no_drive(drive, id_pasta_raiz, caminho):
-    caminho = caminho.replace('\\', '/')
-    if caminho.endswith('/'):
-        caminho = caminho[:-1]
-    if '/' in caminho:
-        nome_pasta_atual = caminho.split('/')[0]
-        proximas_pastas = caminho.split('/')[1:]
-    else:
-        nome_pasta_atual = caminho
-        proximas_pastas = []
-    file_list = drive.ListFile({'q': f"'{id_pasta_raiz}' in parents and trashed=false"}).GetList()
-    file_exists = False
-    current_folder_id = None
-    for file in file_list:
-        if file['title'] == nome_pasta_atual:
-            file_exists = True
-            current_folder_id = file['id']
-            break
-    if not file_exists:
-        # Se o arquivo não existe, cria um novo arquivo
-        new_folder = drive.CreateFile({"title": nome_pasta_atual, "parents": [{"id": id_pasta_raiz}], 'mimeType': 'application/vnd.google-apps.folder'})
-        new_folder.Upload()
-        current_folder_id = new_folder['id']
-    if proximas_pastas:
-        id_pasta_interna = cria_caminho_no_drive(drive, current_folder_id, '/'.join(proximas_pastas))
-        return id_pasta_interna
-    else:
-        return current_folder_id
-
-
-def retorna_arquivo_se_existe(drive, id_pasta_raiz, caminho):
-    caminho = caminho.replace('\\', '/')
-    if caminho.endswith('/'):
-        caminho = caminho[:-1]
-    file_list = drive.ListFile({'q': f"'{id_pasta_raiz}' in parents and trashed=false"}).GetList()
-    for nome_pasta_atual in caminho.split('/')[:-1]:
+    try:
+        caminho = caminho.replace('\\', '/')
+        if caminho.endswith('/'):
+            caminho = caminho[:-1]
+        if '/' in caminho:
+            nome_pasta_atual = caminho.split('/')[0]
+            proximas_pastas = caminho.split('/')[1:]
+        else:
+            nome_pasta_atual = caminho
+            proximas_pastas = []
+        file_list = drive.ListFile({'q': f"'{id_pasta_raiz}' in parents and trashed=false"}).GetList()
         file_exists = False
         current_folder_id = None
         for file in file_list:
@@ -99,21 +78,51 @@ def retorna_arquivo_se_existe(drive, id_pasta_raiz, caminho):
                 file_exists = True
                 current_folder_id = file['id']
                 break
+        if not file_exists:
+            # Se o arquivo não existe, cria um novo arquivo
+            new_folder = drive.CreateFile({"title": nome_pasta_atual, "parents": [{"id": id_pasta_raiz}], 'mimeType': 'application/vnd.google-apps.folder'})
+            new_folder.Upload()
+            current_folder_id = new_folder['id']
+        if proximas_pastas:
+            id_pasta_interna = cria_caminho_no_drive(drive, current_folder_id, '/'.join(proximas_pastas))
+            return id_pasta_interna
+        else:
+            return current_folder_id
+    except:
+        return None
+
+
+def retorna_arquivo_se_existe(drive, id_pasta_raiz, caminho):
+    try:
+        caminho = caminho.replace('\\', '/')
+        if caminho.endswith('/'):
+            caminho = caminho[:-1]
+        file_list = drive.ListFile({'q': f"'{id_pasta_raiz}' in parents and trashed=false"}).GetList()
+        for nome_pasta_atual in caminho.split('/')[:-1]:
+            file_exists = False
+            current_folder_id = None
+            for file in file_list:
+                if file['title'] == nome_pasta_atual:
+                    file_exists = True
+                    current_folder_id = file['id']
+                    break
+            if file_exists:
+                file_list = drive.ListFile({'q': f"'{current_folder_id}' in parents and trashed=false"}).GetList()
+            else:
+                return None
+        nome_arquivo = caminho.split('/')[-1]
+        file_exists = False
+        ret = None
+        for file in file_list:
+            if file['title'] == nome_arquivo:
+                file_exists = True
+                ret = drive.CreateFile({'id': file['id']})
+                break
         if file_exists:
-            file_list = drive.ListFile({'q': f"'{current_folder_id}' in parents and trashed=false"}).GetList()
+            return ret
         else:
             return None
-    nome_arquivo = caminho.split('/')[-1]
-    file_exists = False
-    ret = None
-    for file in file_list:
-        if file['title'] == nome_arquivo:
-            file_exists = True
-            ret = drive.CreateFile({'id': file['id']})
-            break
-    if file_exists:
-        return ret
-    else:
+    except:
         return None
 
 
