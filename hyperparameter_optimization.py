@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  # "C:/mestrado/Dados reais" #
+    caminho_fonte_dados_local = "C:/mestrado/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
@@ -271,13 +271,13 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
-    "demanda energética - kaggle": "TOTALDEMAND",
-    "cafe": "money",
-    "beijing": "pm2.5",
+    # "demanda energética - kaggle": "TOTALDEMAND",
+    # "cafe": "money",
+    # "beijing": "pm2.5",
     "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [20, 5, 1]
+steps_ahead_list = [1, 5, 20]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
