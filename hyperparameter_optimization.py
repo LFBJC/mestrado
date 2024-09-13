@@ -274,7 +274,7 @@ cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
     # "cafe": "money",
     # "beijing": "pm2.5",
-    "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+    # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
 }
 steps_ahead_list = [1, 5, 20]
