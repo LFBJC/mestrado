@@ -33,8 +33,8 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     else:
         out_size = len(train_data[0])
     print(f'OUT SIZE: {out_size}')
-    win_size = trial.suggest_int('win_size', 10, min(len(train_data) // 10, 5000))
-    filters_conv_1 = trial.suggest_int('filters_conv_1', 2, 5)
+    win_size = trial.suggest_int('win_size', 10, min(len(train_data)//10, 13000))
+    filters_conv_1 = trial.suggest_int('filters_conv_1', 2, 10)
     kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', available_kernel_sizes)
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
     pool_size_1 = trial.suggest_categorical('pool_size_1', [(2, 1), (3, 1)])
