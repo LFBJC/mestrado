@@ -83,7 +83,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     Y_ignoring_steps_ahead = Y[:, 0, :]
     history = model.fit(
         X, Y_ignoring_steps_ahead,
-        batch_size=33,
+        batch_size=1,
         epochs=N_EPOCHS,
         verbose=0,
         validation_split=1/3,
