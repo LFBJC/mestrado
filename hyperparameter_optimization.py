@@ -22,7 +22,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "/home/ubuntu/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "/home/CIN/lfbjc/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
