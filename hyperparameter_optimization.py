@@ -59,6 +59,15 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
         # activation_conv_2=activation_conv_2,
         dense_neurons=dense_neurons, dense_activation='sigmoid'
     )
+    model.compile(
+        optimizer=trial.suggest_categorical('optimizer', ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
+        loss=trial.suggest_categorical('loss', [
+            'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
+            'mean_absolute_error' # , MMRE_Loss(inverse_normalizations)
+        ]),
+        # loss=MMRE_Loss(inverse_normalizations),
+        metrics=[MMRE]
+    )
     N_EPOCHS = 1000
     X, Y = images_and_targets_from_data_series(
         train_data, input_win_size=win_size, steps_ahead=steps_ahead
@@ -71,15 +80,6 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     X, Y = normalize_data(X, Y, min_, max_)
     if out_size > 1:
         X, Y = to_ranges(X), to_ranges(Y)
-    model.compile(
-        optimizer=trial.suggest_categorical('optimizer', ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
-        loss=trial.suggest_categorical('loss', [
-            'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_percentage_error',
-            'mean_absolute_error' # , MMRE_Loss(inverse_normalizations)
-        ]),
-        # loss=MMRE_Loss(inverse_normalizations),
-        metrics=[MMRE]
-    )
     Y_ignoring_steps_ahead = Y[:, 0, :]
     history = model.fit(
         X, Y_ignoring_steps_ahead,
