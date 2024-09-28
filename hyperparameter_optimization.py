@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import optuna
 import numpy as np
 import pandas as pd
-from utils import create_model, create_lstm_model, MMRE, MMRE_Loss, images_and_targets_from_data_series
+from utils import create_model, create_lstm_model, MMRE
+from utils import load_images_and_targets_from_data_series, save_images_and_targets_from_data_series
 from utils import plot_multiple_box_plot_series, plot_single_box_plot_series, normalize_data, to_ranges, from_ranges
 from utils import denormalize_data, cria_ou_atualiza_arquivo_no_drive, retorna_arquivo_se_existe
 from tqdm import tqdm
@@ -22,10 +23,11 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "/home/CIN/lfbjc/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/Users/SM energy/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "/home/CIN/lfbjc/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+all_possible_win_sizes = [10, 20, 30, 50, 100, 300, 500, 1000]
 
 
-def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno):
+def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_interno, images_path='./images'):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
     available_kernel_sizes = [(2, 2), (3, 2)]
     if isinstance(train_data[0], dict):
@@ -33,7 +35,8 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     else:
         out_size = len(train_data[0])
     print(f'OUT SIZE: {out_size}')
-    win_size = trial.suggest_int('win_size', 10, min(len(train_data) // 10, 1000))
+    possible_win_sizes = [p for p in all_possible_win_sizes if p <= len(train_data)/10]
+    win_size = trial.suggest_categorical('win_size', possible_win_sizes)
     filters_conv_1 = trial.suggest_int('filters_conv_1', 2, 5)
     kernel_size_conv_1 = trial.suggest_categorical('kernel_size_conv_1', available_kernel_sizes)
     activation_conv_1 = trial.suggest_categorical('activation_conv_1', ['relu', 'elu', 'sigmoid', 'linear', 'tanh', 'swish'])
@@ -69,9 +72,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
         metrics=[MMRE]
     )
     N_EPOCHS = 1000
-    X, Y = images_and_targets_from_data_series(
-        train_data, input_win_size=win_size, steps_ahead=steps_ahead
-    )
+    X, Y = load_images_and_targets_from_data_series(f"{images_path}/{win_size}")
     if isinstance(train_data[0], dict):
         train_data_array = np.array([list(x.values()) for x in train_data])
     else:
@@ -89,7 +90,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
         validation_split=1/3,
         callbacks=tf.keras.callbacks.EarlyStopping(patience=10)
     )
-    X_test, Y_test = images_and_targets_from_data_series(
+    X_test, Y_test = load_images_and_targets_from_data_series(
         val_data, input_win_size=win_size, steps_ahead=steps_ahead
     )
     X_test, Y_test = normalize_data(X_test, Y_test, min_, max_)
@@ -131,7 +132,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     # Criação do objeto drive
     drive = GoogleDrive(gauth)
     if np.isnan(error):
-        print(debug)
+        print('debug')
     try:
         if error < study.best_value:
             caminho_modelo_local = f'{caminho_completo_saida}/best_model.h5'
@@ -376,6 +377,14 @@ for partition_size in [100]:  # [100, None]:
                         val_data = val_data[["whislo", "q1", "med", "q3", "whishi"]]
                     objective_kwargs['train_data'] = train_data.values
                     objective_kwargs['val_data'] = val_data.values
+                    if model_type == "CNN":
+                        for win_size in all_possible_win_sizes:
+                            if not os.path.exists(f'./images/{win_size}'):
+                                os.makedirs(f'./images/{win_size}')
+                                save_images_and_targets_from_data_series(
+                                    objective_kwargs['train_data'], input_win_size=win_size, steps_ahead=steps_ahead,
+                                    output_path=f"./images/{win_size}"
+                                )
             if proceed:
                 study = optuna.create_study(
                     direction='minimize',

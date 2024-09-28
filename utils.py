@@ -1,7 +1,10 @@
 import os
+import pickle
 import threading
 import warnings
 from typing import List
+
+from PIL import Image
 import keras
 import numpy as np
 import matplotlib.pyplot as plt
@@ -323,22 +326,46 @@ def plot_multiple_box_plot_series(box_plot_series, save_path='', show=True):
             plt.show()
 
 
-def images_and_targets_from_data_series(data, input_win_size=20, steps_ahead = 1):
+import numpy as np
+from PIL import Image
+import pickle
+
+
+def save_images_and_targets_from_data_series(data, input_win_size=20, steps_ahead=1, output_path='.'):
     if steps_ahead <= 0:
         raise ValueError("Can't predict negative steps ahead")
+
+    # Convert dict to list of values if necessary
     if isinstance(data[0], dict):
         data = list(map(lambda x: list(x.values()), data))
     else:
         data = [x for x in data]
-    images = []
-    all_targets = []
-    for i in range(len(data)-1-steps_ahead-input_win_size):
-        image = np.array(data[i:input_win_size+i])
-        image = np.expand_dims(image, len(image.shape))
+
+    for i in range(len(data) - 1 - steps_ahead - input_win_size):
+        # Extract the image slice (this should be 2D)
+        image = np.array(data[i:input_win_size + i])
+
+        # Convert the image to uint8 type
+        image = image.astype('uint8')
+
+        # Extract the targets
         targets = np.array([data[input_win_size + i + s] for s in range(steps_ahead)])
-        images.append(image)
-        all_targets.append(targets)
-    return np.array(images), np.array(all_targets)
+
+        # Save the image as PNG
+        Image.fromarray(image, mode='L').save(f'{output_path}/{i}_image.png')
+
+        # Save the targets using pickle
+        pickle.dump(targets, open(f'{output_path}/{i}_targets.pkl', 'wb'))
+
+
+def load_images_and_targets_from_data_series(data_path):
+    images = []
+    targets = []
+    for fname in tqdm(os.listdir(data_path)):
+        if fname.endswith('_image.png'):
+            images.append(np.array(Image.open(f"{data_path}/{fname}")))
+            targets.append(pickle.load(open(f"{data_path}/{fname.replace('_image.png', '_targets.pkl')}", 'rb')))
+    return images, targets
 
 
 def normalize_data(inputs, targets, min_, max_):
