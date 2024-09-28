@@ -81,17 +81,15 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
     X, Y = normalize_data(X, Y, min_, max_)
     if out_size > 1:
         X, Y = to_ranges(X), to_ranges(Y)
-    gpus = tf.config.list_physical_devices('GPU')
-    with tf.device(gpus[0]):
-        Y_ignoring_steps_ahead = Y[:, 0, :]
-        history = model.fit(
-            X, Y_ignoring_steps_ahead,
-            batch_size=1,
-            epochs=N_EPOCHS,
-            verbose=0,
-            validation_split=1/3,
-            callbacks=tf.keras.callbacks.EarlyStopping(patience=10)
-        )
+    Y_ignoring_steps_ahead = Y[:, 0, :]
+    history = model.fit(
+        X, Y_ignoring_steps_ahead,
+        batch_size=1,
+        epochs=N_EPOCHS,
+        verbose=0,
+        validation_split=1/3,
+        callbacks=tf.keras.callbacks.EarlyStopping(patience=10)
+    )
     X_test, Y_test = load_images_and_targets_from_data_series(
         val_data, input_win_size=win_size, steps_ahead=steps_ahead
     )
