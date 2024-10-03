@@ -21,7 +21,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_arima = "1CPw6H8WUijzisrF1GjVk_xnGlHkZ2-KM"
-    caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/mestrado/Pesquisa/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 
 
 def roda_var(model, val_data, lags, steps_ahead):
@@ -63,12 +63,14 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 
 if __name__ == '__main__':
-    model_name = "ARIMA"  # "VAR"  #
+    model_name =  "ARIMA"  #"VAR"  #
     cols_alvo = {
-        "cafe": "money",
-        "beijing": "pm2.5",
-        "Amazon": "Volume",
-        "Netflix": "Volume"
+        # "cafe": "money",
+        # "beijing": "pm2.5",
+        "demanda energética - kaggle": "TOTALDEMAND",
+        "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+        # "Amazon": "Volume",
+        # "Netflix": "Volume"
     }
     steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
@@ -85,7 +87,7 @@ if __name__ == '__main__':
             for data_index in data_indices:
                 pastas_entrada.append(f"config {config}/partição de tamanho {partition_size}/{data_index}")
     else:
-        pastas_entrada = ["beijing", "Amazon", "Netflix"]  # ["demanda energética - kaggle", "cafe", ]
+        pastas_entrada = cols_alvo.keys() # ["beijing", "Amazon", "Netflix"]  # ["demanda energética - kaggle", "cafe", ]
     for pasta_entrada in pastas_entrada:
         local_steps_ahead_list = steps_ahead_list
         if tipo_de_dados == "Simulados":
