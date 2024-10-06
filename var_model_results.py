@@ -63,10 +63,10 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 
 if __name__ == '__main__':
-    model_name =  "ARIMA"  #"VAR"  #
+    model_name =  "VAR"  # "ARIMA"  #
     cols_alvo = {
-        # "cafe": "money",
-        # "beijing": "pm2.5",
+        "cafe": "money",
+        "beijing": "pm2.5",
         "demanda energética - kaggle": "TOTALDEMAND",
         "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
         # "Amazon": "Volume",
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     }
     steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
-    partition_size = None  # 100  #
+    partition_size = 100  # None  #
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 7):
@@ -152,15 +152,19 @@ if __name__ == '__main__':
             best_params = None
             if model_name == "VAR":
                 for lags in range(1, 10):
-                    model = VAR(train_df)
+                    model = VAR(train_df[['whislo', 'q1', 'med', 'q3', 'whishi']])
                     model_fitted = model.fit(maxlags=lags)
-                    resultado = roda_var(model_fitted, val_df, lags, steps_ahead)
+                    resultado = roda_var(model_fitted, val_df[['whislo', 'q1', 'med', 'q3', 'whishi']], lags, steps_ahead)
                     if resultado < best_error:
                         print(lags)
                         print(resultado, best_error)
                         best_error = resultado
                         best_params = lags
-                        pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}.pkl", 'wb'))
+                        for pkl_file in os.listdir(pasta_saida):
+                            if pkl_file.endswith('.pkl') and pkl_file.split('_')[2] == str(steps_ahead):
+                                print(f"REMOVENDO {pkl_file}")
+                                os.remove(f"{pasta_saida}/{pkl_file}")
+                        pickle.dump(model_fitted, open(f"{pasta_saida}/bestModel_{pasta_entrada.replace('/', '-')}_{steps_ahead}_{lags}.pkl", 'wb'))
 
                         gauth = GoogleAuth()
                         scope = ['https://www.googleapis.com/auth/drive']
