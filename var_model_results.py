@@ -63,18 +63,18 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 
 if __name__ == '__main__':
-    model_name =  "VAR"  # "ARIMA"  #
+    model_name =  "ARIMA"  # "VAR"  # 
     cols_alvo = {
-        "cafe": "money",
-        "beijing": "pm2.5",
+        # "cafe": "money",
+        # "beijing": "pm2.5",
         "demanda energética - kaggle": "TOTALDEMAND",
-        "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
+        # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
         # "Amazon": "Volume",
         # "Netflix": "Volume"
     }
     steps_ahead_list = [1, 5, 20]
     print(f'model_name {model_name}')
-    partition_size = 100  # None  #
+    partition_size = None  # 100  #
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 7):
