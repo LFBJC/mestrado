@@ -170,7 +170,8 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
 
 def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
-    win_size = trial.suggest_int('win_size', 10, min(len(train_data) // 10, 13000))
+    print("train_data.shape:", train_data.shape)
+    win_size = trial.suggest_int('win_size', 10, min((len(train_data)/2 - 20)// 10, 13000))
     if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in train_data])
     else:
@@ -218,16 +219,26 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         data = np.array([np.array(list(x.values())) for x in val_data])
     else:
         data = np.array(val_data)
+    ERRO NA DIVISÃO DOS DADOS: INVESTIGAR
+    print("data.shape:", data.shape)
+    print("len(data):", len(data))
+    print("steps_ahead:", steps_ahead)
+    print("diferença:", len(data)-steps_ahead)
+    print("win_size:", win_size)
+    print(f"zip(range(0, {win_size*((len(data) - steps_ahead)//win_size), win_size}), range({(len(data) - win_size - steps_ahead)//win_size}))")
     X_test = np.array([data[i:i + win_size] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
     Y_test = np.array([data[i + win_size + steps_ahead] for i, j in zip(range(0, win_size*((len(data) - steps_ahead)//win_size), win_size), range((len(data) - win_size - steps_ahead)//win_size))])
+    print("X_test.shape (b4 normalizing):", X_test.shape)
     X_test, Y_test = normalize_data(X_test, Y_test, min_, max_)
     if isinstance(train_data[0], dict):
         X_test, Y_test = to_ranges(X_test, axis=1), to_ranges(Y_test, axis=1)
+        print("X_test.shape:", X_test.shape)
         T = from_ranges(model.predict(X_test, verbose=0), axis=1)
         error = tf.keras.backend.eval(
             MMRE(denormalize_data(from_ranges(Y_test, axis=1), min_, max_), denormalize_data(T, min_, max_))
         )
     else:
+        print("X_test.shape:", X_test.shape)
         T = model.predict(X_test, verbose=0)
         error = tf.keras.backend.eval(
             MMRE(denormalize_data(Y_test, min_, max_), denormalize_data(T, min_, max_))
@@ -247,6 +258,7 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
             cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_modelo_drive, caminho_modelo_local)
             caminho_pickle_history = f'{caminho_completo_saida}/best_model_history.pkl'
             caminho_history_drive = f'{caminho_interno}/best_model_history.pkl'
+            print(f"caminho_completo_saida: {caminho_completo_saida}")
             pickle.dump(history.history, open(f'{caminho_completo_saida}/best_model_history.pkl', 'wb'))
             cria_ou_atualiza_arquivo_no_drive(drive, id_pasta_base_drive, caminho_history_drive, caminho_pickle_history)
     except ValueError:
@@ -273,18 +285,18 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
     # "demanda energética - kaggle": "TOTALDEMAND",
-    # "cafe": "money",
+    "cafe": "money",
     # "beijing": "pm2.5",
     # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-    "WIND POWER GERMANY": "MW",
+    # "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [1, 5, 20]
+steps_ahead_list = [20, 5, 1]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
-model_type = "CNN"
+model_type = "LSTM"
 for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []

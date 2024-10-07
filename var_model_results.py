@@ -63,7 +63,7 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 
 if __name__ == '__main__':
-    model_name =  "ARIMA"  # "VAR"  # 
+    model_name =  "ARIMA"  # "VAR"  #
     cols_alvo = {
         # "cafe": "money",
         # "beijing": "pm2.5",
