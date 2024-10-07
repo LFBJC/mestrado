@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import pickle
 from tqdm import tqdm
-pasta_modelos = r"C:\mestrado\Pesquisa\Dados reais\ARIMA - 5 CURVAS\beijing"
-pasta_dados = r"C:\mestrado\Pesquisa\Dados reais\Dados tratados\beijing"
+pasta_modelos = r"C:\mestrado\Pesquisa\Dados reais\ARIMA\KAGGLE - HOUSE HOLD ENERGY CONSUMPTION"
+pasta_dados = r"C:\mestrado\Pesquisa\Dados reais\Dados tratados\KAGGLE - HOUSE HOLD ENERGY CONSUMPTION"
 boxplot_cols = ['whishi', 'q3', 'med', 'q1', 'whislo']
 out = pd.DataFrame()
 pasta_saida = pasta_modelos
