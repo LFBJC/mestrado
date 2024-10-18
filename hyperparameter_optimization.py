@@ -23,7 +23,7 @@ if tipo_de_dados == "Simulados":
     caminho_fonte_dados_local = "D:/mestrado/Pesquisa/Dados simulados"  # "C:/Users/User/Desktop/mestrado Felipe" #
 else:
     id_pasta_base_drive = "1BYnWbci5nuYYG6iDIMFDOh3ctz7yX3H4"
-    caminho_fonte_dados_local = "C:/Users/SM energy/OneDrive - SM SMART ENERGY SOLUTIONS LTDA/backup/mestrado/Pesquisa/Dados reais" # "/home/CIN/lfbjc/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
+    caminho_fonte_dados_local = "C:/mestrado/Pesquisa/Dados reais" # "/home/CIN/lfbjc/mestrado_dados/Dados reais" # "C:/Users/User/Desktop/mestrado Felipe/Dados reais"  #
 all_possible_win_sizes = [10, 20, 30, 50, 100, 300, 500, 1000]
 
 
@@ -171,7 +171,7 @@ def objective_cnn(trial, study, train_data, val_data, pasta_base_saida, caminho_
 def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminho_interno):
     caminho_completo_saida = os.path.join(pasta_base_saida, caminho_interno)
     print("train_data.shape:", train_data.shape)
-    win_size = trial.suggest_int('win_size', 10, min((len(train_data)/2 - 20)// 10, 13000))
+    win_size = trial.suggest_int('win_size', 10, min((len(val_data) - 20)// 2, 13000))
     if isinstance(train_data[0], dict):
         data = np.array([np.array(list(x.values())) for x in train_data])
     else:
@@ -219,7 +219,6 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
         data = np.array([np.array(list(x.values())) for x in val_data])
     else:
         data = np.array(val_data)
-    ERRO NA DIVISÃO DOS DADOS: INVESTIGAR
     print("data.shape:", data.shape)
     print("len(data):", len(data))
     print("steps_ahead:", steps_ahead)
@@ -284,20 +283,20 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
-    # "demanda energética - kaggle": "TOTALDEMAND",
-    "cafe": "money",
+    "demanda energética - kaggle": "TOTALDEMAND",
+    # "cafe": "money",
     # "beijing": "pm2.5",
     # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     # "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [20, 5, 1]
+steps_ahead_list = [5, 1, 20]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [100]:  # [100, None]:
+for partition_size in [None]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
@@ -307,10 +306,10 @@ for partition_size in [100]:  # [100, None]:
     else:
         pastas_entrada = list(cols_alvo.keys())
     for pasta_entrada in pastas_entrada:
-        if pasta_entrada == "demanda energética - kaggle":
-            local_steps_ahead = [5, 1]
-        else:
-            local_steps_ahead = steps_ahead_list
+        # if pasta_entrada == "demanda energética - kaggle":
+        #     local_steps_ahead = [5, 1]
+        # else:
+        local_steps_ahead = steps_ahead_list
         if tipo_de_dados == "Simulados":
             val_file_name = ''
             if partition_size is not None:
@@ -364,7 +363,7 @@ for partition_size in [100]:  # [100, None]:
                     else:
                         train_and_val = pd.read_csv(f'{pasta_dados}/{train_file_name}')['s'].map(lambda x: [x]).values
                     objective_kwargs['train_data'] = train_and_val[:int(2 / 3 * len(train_and_val))]
-                    objective_kwargs['val_data'] = train_and_val[int(2 / 3 * len(train_and_val)):]
+                    val_data = objective_kwargs['val_data'] = train_and_val[int(2 / 3 * len(train_and_val)):]
             else:
                 pasta_dados = f"{caminho_fonte_dados_local}/{caminho_dados_drive}"
                 if not os.path.exists(f"{pasta_dados}/{train_file_name}") or not os.path.exists(f"{pasta_dados}/{val_file_name}"):
@@ -397,6 +396,8 @@ for partition_size in [100]:  # [100, None]:
                                     objective_kwargs['train_data'], input_win_size=win_size, steps_ahead=steps_ahead,
                                     output_path=f"./images/{win_size}"
                                 )
+                else:
+                    val_data = []
             if proceed:
                 study = optuna.create_study(
                     direction='minimize',
@@ -404,14 +405,14 @@ for partition_size in [100]:  # [100, None]:
                     study_name=f'hyperparameter_opt {pasta_entrada}, {model_type}, {steps_ahead} steps ahead'
                 )
                 objective_kwargs['study'] = study
-                opt_hist_file_drive = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
-                if opt_hist_file_drive is None:
+                # opt_hist_file_drive = retorna_arquivo_se_existe(drive, id_pasta_base_drive, f'{saida_drive}/opt_hist.csv')
+                if not os.path.exists(f'{caminho_completo_saida}/opt_hist.csv'):
                     study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials)
                 else:
-                    opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
+                    # opt_hist_file_drive.GetContentFile(f'{caminho_completo_saida}/opt_hist.csv')
                     opt_hist_df = pd.read_csv(f'{caminho_completo_saida}/opt_hist.csv')
                     for _, row in opt_hist_df.iterrows():
-                        train_data_size = int(2 / 3 * len(train_and_val))
+                        print(row)
                         if model_type == "CNN":
                             if aggregation_type == "boxplot":
                                 available_kernel_sizes = [(2, 2), (3, 2)]
@@ -440,50 +441,47 @@ for partition_size in [100]:  # [100, None]:
                             }
                         else:
                             distributions = {
-                                'win_size': optuna.distributions.IntDistribution(10, int(train_data_size/10)),
-                                'Número de Camadas': optuna.distributions.IntDistribution(1, 5),
-                                'Unidades na camada 0': optuna.distributions.IntDistribution(4, 64),
-                                'Dropout na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
-                                'Dropout recorrente na camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
-                                'optimizer': optuna.distributions.CategoricalDistribution(
-                                    ['adam', 'adadelta', 'adagrad', 'rmsprop', 'sgd']),
-                                'loss': optuna.distributions.CategoricalDistribution([
-                                    'mean_squared_error', 'mean_squared_logarithmic_error',
-                                    'mean_absolute_percentage_error',
-                                    'mean_absolute_error'
-                                ])
+                                'win_size': optuna.distributions.IntDistribution(
+                                    10, min((len(val_data) - 20) // 2, 13000)
+                                ),
+                                 'Número de camadas': optuna.distributions.IntDistribution(1, 2),
+                                 'Unidades na camada 0': optuna.distributions.IntDistribution(4, 32),
+                                 'Dropout da camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
+                                 'Dropout recorrente da camada 0': optuna.distributions.FloatDistribution(0.1, 0.5),
+                                 'optimizer': optuna.distributions.CategoricalDistribution(['sgd']),
+                                 'loss': optuna.distributions.CategoricalDistribution([
+                                     'mean_squared_error', 'mean_squared_logarithmic_error',
+                                     'mean_absolute_percentage_error',
+                                     'mean_absolute_error'
+                                 ]),
+                                 'Unidades na camada 1': optuna.distributions.IntDistribution(3, row['Unidades na camada 0']),
+                                 'Dropout da camada 1': optuna.distributions.FloatDistribution(0.1, 0.5),
+                                 'Dropout recorrente da camada 1': optuna.distributions.FloatDistribution(0.1, 0.5)
                             }
-                            for i in range(1, 5):
-                                if f'Unidades na  camada {i - 1}' in row.to_dict().keys():
-                                    distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
-                                        4, row[f'Unidades na camada {i - 1}']),
-                                else:
-                                    distributions[f'Unidades na camada {i}'] = optuna.distributions.IntDistribution(
-                                        4, 64),
-                                    distributions[
-                                        f'Dropout na camada {i}'] = optuna.distributions.FloatDistribution(
-                                        0.1, 0.5),
-                                    distributions[
-                                        f'Dropout recorrente na camada {i}'] = optuna.distributions.FloatDistribution(
-                                        0.1, 0.5)
+
+
                         def value_from_row_value(c, v):
                             print(f'{c}: {v}')
-                            if isinstance(v, str):
+                            if 'Unidades na camada' in c and pd.isna(v):
+                                return 3
+                            elif 'camada' in c and pd.isna(v):
+                                return 0.1
+                            elif isinstance(v, str):
                                 try:
                                     return ast.literal_eval(v)
                                 except ValueError:
                                     return v
                             else:
                                 return v
+                        params_trial = {c: value_from_row_value(c, v) for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']}
                         study.add_trial(
                             optuna.trial.create_trial(
-                                params={c: value_from_row_value(c, v) for c, v in row.to_dict().items() if c not in ['w2', 'w3', 'w4', 'h4', 'score']},
+                                params=params_trial,
                                 distributions=distributions,
                                 value=row['score']
                             )
                         )
-                        study.optimize(lambda trial: objective(trial=trial, **objective_kwargs),
-                                       n_trials=n_trials - opt_hist_df.shape[0])
+                    study.optimize(lambda trial: objective(trial=trial, **objective_kwargs), n_trials=n_trials - opt_hist_df.shape[0])
 # with open(f"{caminho_fonte_dados_local}/TERMINOU.txt", "w") as termino_arquivo:
 #     termino_arquivo.write("TERMINOU!")
 # os.system('shutdown /s')
