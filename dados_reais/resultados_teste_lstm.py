@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -6,7 +8,8 @@ from utils import MMRE, normalize_data, denormalize_data, from_ranges, to_ranges
 conjuntos = ["beijing", "cafe", "demanda energética - kaggle", "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION"]
 pasta_modelos = "C:/mestrado/Pesquisa/Dados reais/LSTM/Saída da otimização de hiperparâmetros"
 pasta_dados_tratados = "C:/mestrado/Pesquisa/Dados reais/Dados tratados"
-redes_neurais_df = pd.DataFrame(columns=['Conjunto', 'Passos à Frente', 'Tipo de Modelo', 'Score de Teste'])
+redes_neurais_df = pd.DataFrame(columns=['Modelo', 'Conjunto', 'Passos à frente', 'Score'])
+pasta_saida = "C:/mestrado/Pesquisa/Dados reais/LSTM"
 colunas_por_conjunto = {
     "demanda energética - kaggle": "TOTALDEMAND",
     "cafe": "money",
@@ -54,5 +57,6 @@ for tipo_de_agrupamento in ["com boxplot", "sem agrupamento"]:
                 MMRE(denormalize_data(from_ranges(Y_test, axis=1), min_, max_), denormalize_data(T, min_, max_))
             )
             redes_neurais_df = pd.concat([redes_neurais_df, pd.DataFrame.from_records([{
-                'Conjunto': conjuntos, 'Passos à Frente': steps_ahead, 'Tipo de Modelo': 'LSTM', 'Score de Teste': error
+                'Modelo': f'LSTM - {tipo_de_agrupamento}', 'Conjunto': conjunto, 'Passos à frente': steps_ahead, 'Score': error
             }])])
+redes_neurais_df.to_excel(f"{pasta_saida}/Resultados de Teste.xlsx", index=False)

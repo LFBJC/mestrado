@@ -67,12 +67,13 @@ if __name__ == '__main__':
     cols_alvo = {
         # "cafe": "money",
         # "beijing": "pm2.5",
-        "demanda energética - kaggle": "TOTALDEMAND",
+        # "demanda energética - kaggle": "TOTALDEMAND",
         # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
         # "Amazon": "Volume",
-        # "Netflix": "Volume"
+        # "Netflix": "Volume",
+        "WIND POWER GERMANY": "MW"
     }
-    steps_ahead_list = [1, 5, 20]
+    steps_ahead_list = [1, 5, 20] #
     print(f'model_name {model_name}')
     partition_size = None  # 100  #
     if tipo_de_dados == "Simulados":

@@ -283,20 +283,20 @@ def objective_lstm(trial, study, train_data, val_data,  pasta_base_saida, caminh
 
 aggregation_type = 'boxplot' # 'median' #
 cols_alvo = {
-    "demanda energética - kaggle": "TOTALDEMAND",
+    # "demanda energética - kaggle": "TOTALDEMAND",
     # "cafe": "money",
     # "beijing": "pm2.5",
     # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-    # "WIND POWER GERMANY": "MW",
+    "WIND POWER GERMANY": "MW",
 }
-steps_ahead_list = [5, 1, 20]
+steps_ahead_list = [1, 5, 20]
 n_trials = 100
 objective_by_model_type = {
     'LSTM': objective_lstm,
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [None]:  # [100, None]:
+for partition_size in [100]:  # [100, None]:
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
