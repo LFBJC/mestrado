@@ -63,19 +63,20 @@ def salva(drive, caminho_de_saida, data_index, steps_ahead, best_error, best_par
 
 
 if __name__ == '__main__':
-    model_name =  "ARIMA"  # "VAR"  #
+    model_name = "VAR"  #  "ARIMA"  #
     cols_alvo = {
         # "cafe": "money",
         # "beijing": "pm2.5",
         # "demanda energética - kaggle": "TOTALDEMAND",
         # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-        # "Amazon": "Volume",
+        # "Amazon": "Close",
         # "Netflix": "Volume",
-        "WIND POWER GERMANY": "MW"
+        # "WIND POWER GERMANY": "MW",
+        "USD_CHF Dados Históricos.csv": "Último"
     }
     steps_ahead_list = [1, 5, 20] #
     print(f'model_name {model_name}')
-    partition_size = None  # 100  #
+    partition_size = 100  # None  #
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 7):
@@ -243,6 +244,13 @@ if __name__ == '__main__':
                         #           params_column_name='lags')
                     if isinstance(resultado, np.float64) or isinstance(resultado, np.float32):
                         resultado = float(resultado)
+                    hist_path = f'{pasta_saida}/opt_hist_{steps_ahead}_steps_ahead.csv'
+                    if os.path.exists(hist_path):
+                        opt_hist_df = pd.concat(
+                            [pd.read_csv(hist_path), pd.DataFrame.from_records([{**trial.params, 'score': resultado}])])
+                    else:
+                        opt_hist_df = pd.DataFrame.from_records([{**trial.params, 'score': resultado}])
+                    opt_hist_df.to_csv(hist_path, index=False)
                     return resultado
 
                 def stop_on_zero(study, trial):
@@ -251,5 +259,22 @@ if __name__ == '__main__':
                             study.stop()
 
                 study = optuna.create_study(direction='minimize', study_name=f'{model_name} {pasta_entrada}')
-                study.optimize(lambda trial: objective(trial, study), n_trials=30, callbacks=[stop_on_zero])
+                if os.path.exists(f'{pasta_saida}/opt_hist_{steps_ahead}_steps_ahead.csv'):
+                    opt_hist_df = pd.read_csv(f'{pasta_saida}/opt_hist_{steps_ahead}_steps_ahead.csv')
+                    for _, row in opt_hist_df.iterrows():
+                        print(row)
+                        study.add_trial(
+                            optuna.trial.create_trial(
+                                params={'p': row['p'], 'd': row['d'], 'q': row['q']},
+                                distributions={
+                                    'p': optuna.distributions.IntDistribution(1, 10),
+                                    'd': optuna.distributions.IntDistribution(0,2),
+                                    'q': optuna.distributions.IntDistribution(0,8)
+                                },
+                                value=row['score']
+                            )
+                        )
+                else:
+                    opt_hist_df = pd.DataFrame()
+                study.optimize(lambda trial: objective(trial, study), n_trials=(30 - opt_hist_df.shape[0]), callbacks=[stop_on_zero])
 

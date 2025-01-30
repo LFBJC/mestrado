@@ -5,7 +5,7 @@ import pandas as pd
 import tensorflow as tf
 from utils import MMRE, normalize_data, denormalize_data, from_ranges, to_ranges
 
-conjuntos = ["beijing", "cafe", "demanda energética - kaggle", "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION"]
+conjuntos = ["USD_CHF Dados Históricos.csv", "USD_JPY Dados Históricos.csv", "Dados Históricos - Bitcoin.csv", "BRL_USD Dados Históricos.csv", "EUR_USD Dados Históricos.csv", "GBP_USD Dados Históricos.csv", "Amazon", "beijing", "demanda energética - kaggle", "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION"]
 pasta_modelos = "C:/mestrado/Pesquisa/Dados reais/LSTM/Saída da otimização de hiperparâmetros"
 pasta_dados_tratados = "C:/mestrado/Pesquisa/Dados reais/Dados tratados"
 redes_neurais_df = pd.DataFrame(columns=['Modelo', 'Conjunto', 'Passos à frente', 'Score'])
@@ -16,6 +16,13 @@ colunas_por_conjunto = {
     "beijing": "pm2.5",
     "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
     "WIND POWER GERMANY": "MW",
+    "Amazon": "Close",
+    "USD_JPY Dados Históricos.csv": "Último",
+    "Dados Históricos - Bitcoin.csv": "Último",
+    "BRL_USD Dados Históricos.csv": "Último",
+    "EUR_USD Dados Históricos.csv": "Último",
+    "GBP_USD Dados Históricos.csv": "Último",
+    "USD_CHF Dados Históricos.csv": "Último"
 }
 for tipo_de_agrupamento in ["com boxplot", "sem agrupamento"]:
     print(tipo_de_agrupamento)

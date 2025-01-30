@@ -287,7 +287,8 @@ cols_alvo = {
     # "cafe": "money",
     # "beijing": "pm2.5",
     # "KAGGLE - HOUSE HOLD ENERGY CONSUMPTION": "USAGE",
-    "WIND POWER GERMANY": "MW",
+    # "WIND POWER GERMANY": "MW",
+    "USD_CHF Dados Históricos.csv": "Último"
 }
 steps_ahead_list = [1, 5, 20]
 n_trials = 100
@@ -296,7 +297,7 @@ objective_by_model_type = {
     'CNN': objective_cnn
 }
 model_type = "LSTM"
-for partition_size in [100]:  # [100, None]:
+for partition_size in [100, None]: # [100]:  #
     if tipo_de_dados == "Simulados":
         pastas_entrada = []
         for config in range(1, 8):
